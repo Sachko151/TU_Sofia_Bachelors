@@ -1,0 +1,4 @@
+PC->Orange Pi
+scp -r BachelorDiploma orange@192.168.1.15:/home/orange
+
+scp -r orange@192.168.1.15:/home/orange/BachelorDiploma /home/sachko
