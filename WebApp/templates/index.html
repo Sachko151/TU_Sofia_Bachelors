@@ -2,17 +2,10 @@
 
 {% block content %}
 
-<!-- Add New Device Form -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <form method="POST" class="d-flex gap-2 flex-wrap">
-            <input type="text" name="name" class="form-control" placeholder="Device name" required>
-            <input type="text" name="ip" class="form-control" placeholder="Device IP (optional)">
-            <button type="submit" class="btn btn-success btn-icon">
-                <i class="bi bi-plus-lg"></i> Add Device
-            </button>
-        </form>
-    </div>
+<div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('add_device') }}" class="btn btn-success btn-icon">
+        <i class="bi bi-plus-lg"></i> Add Device
+    </a>
 </div>
 
 <!-- Devices Dashboard -->
@@ -34,6 +27,9 @@
 
                         <!-- Action Buttons -->
                         <div class="d-flex gap-2">
+                            <a href="{{ url_for('device_detail', id=item.id) }}" class="btn btn-primary btn-sm btn-icon">
+                                <i class="bi bi-speedometer2"></i> Details
+                            </a>
                             <a href="{{ url_for('edit', id=item.id) }}" class="btn btn-warning btn-sm btn-icon">
                                 <i class="bi bi-pencil-square"></i> Edit
                             </a>

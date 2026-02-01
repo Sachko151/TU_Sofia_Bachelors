@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+    <div class="card shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>{{ item.name }}</h2>
+            <span class="badge bg-{{ 'success' if item.state else 'secondary' }}">
+                {{ "ON" if item.state else "OFF" }}
+            </span>
+        </div>
+
+        <p class="text-muted">IP Address: {{ item.ip or "Not configured" }}</p>
+
+        <hr>
+
+        <div class="row g-3">
+
+            <!-- Power Toggle -->
+            <div class="col-md-4">
+                <form action="{{ url_for('toggle_device', id=item.id) }}" method="POST">
+                    <button class="btn btn-lg w-100 {{ 'btn-danger' if item.state else 'btn-success' }}">
+                        Turn {{ "OFF" if item.state else "ON" }}
+                    </button>
+                </form>
+            </div>
+
+            <!-- Ping -->
+            <div class="col-md-4">
+                <a href="{{ url_for('ping', id=item.id) }}" class="btn btn-info btn-lg w-100">
+                    Ping Device
+                </a>
+            </div>
+
+            <!-- Edit -->
+            <div class="col-md-4">
+                <a href="{{ url_for('edit', id=item.id) }}" class="btn btn-warning btn-lg w-100">
+                    Edit Settings
+                </a>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <form method="POST" action="{{ url_for('delete', id=item.id) }}">
+            <button class="btn btn-outline-danger">
+                Delete Device
+            </button>
+        </form>
+
+        <br>
+        <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+
+    </div>
+</div>
+
+{% endblock %}

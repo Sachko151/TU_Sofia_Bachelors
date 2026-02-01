@@ -5,6 +5,7 @@ from flask import flash
 
 
 app = Flask(__name__)
+app.secret_key = "TODO"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///items.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -22,18 +23,26 @@ with app.app_context():
     db.create_all()
 
 # READ + CREATE
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
+    items = Item.query.all()
+    return render_template("index.html", items=items)
+
+#CREATE
+@app.route("/add", methods=["GET", "POST"])
+def add_device():
     if request.method == "POST":
-        name = request.form["name"]
+        name = request.form.get("name")
         ip = request.form.get("ip")
+
         new_item = Item(name=name, ip=ip)
         db.session.add(new_item)
         db.session.commit()
-        return redirect(url_for("index"))
 
-    items = Item.query.all()
-    return render_template("index.html", items=items)
+        flash("Device added successfully!", "success")
+        return redirect(url_for("device_detail", id=new_item.id))
+
+    return render_template("add_device.html")
 
 @app.route("/ping/<int:id>")
 def ping(id):
@@ -61,9 +70,11 @@ def edit(id):
     item = Item.query.get_or_404(id)
 
     if request.method == "POST":
-        item.name = request.form["name"]
+        item.name = request.form.get("name")
+        item.ip = request.form.get("ip")
         db.session.commit()
-        return redirect(url_for("index"))
+        flash("Device updated successfully!", "success")
+        return redirect(url_for("device_detail", id=item.id))
 
     return render_template("edit.html", item=item)
 
@@ -83,6 +94,13 @@ def delete(id):
     db.session.delete(item)
     db.session.commit()
     return redirect(url_for("index"))
+
+# DEVICE DETAILS
+@app.route("/device/<int:id>")
+def device_detail(id):
+    item = Item.query.get_or_404(id)
+    return render_template("device.html", item=item)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
