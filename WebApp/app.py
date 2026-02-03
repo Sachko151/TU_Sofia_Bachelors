@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 from flask import flash
+import enum
+from sqlalchemy import Enum
 
 
 app = Flask(__name__)
@@ -11,12 +13,26 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+class ECUType(enum.Enum):
+    GENERIC = "generic"
+    AC = "ac"
+    LIGHTS = "lights"
+    HEATING = "engine"
+    DOOR = "doors"
+    TEMPERATURE_SENSOR = "sensor"
+
 # Model
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    state = db.Column(db.Boolean, default=False)  # ON/OFF
-    ip = db.Column(db.String(15), nullable=True)  # Optional IPv4
+    state = db.Column(db.Boolean, default=False)
+    ip = db.Column(db.String(15), nullable=True)
+
+    ecu_type = db.Column(
+        Enum(ECUType),
+        nullable=False,
+        default=ECUType.GENERIC
+    )
 
 # Create DB
 with app.app_context():
@@ -34,15 +50,17 @@ def add_device():
     if request.method == "POST":
         name = request.form.get("name")
         ip = request.form.get("ip")
+        ecu_type = ECUType(request.form.get("ecu_type"))
 
-        new_item = Item(name=name, ip=ip)
+        new_item = Item(name=name, ip=ip, ecu_type=ecu_type)
         db.session.add(new_item)
         db.session.commit()
 
         flash("Device added successfully!", "success")
         return redirect(url_for("device_detail", id=new_item.id))
 
-    return render_template("add_device.html")
+    return render_template("add_device.html", ecu_types=ECUType)
+
 
 @app.route("/ping/<int:id>")
 def ping(id):
@@ -72,11 +90,12 @@ def edit(id):
     if request.method == "POST":
         item.name = request.form.get("name")
         item.ip = request.form.get("ip")
+        item.ecu_type = ECUType(request.form.get("ecu_type"))
         db.session.commit()
         flash("Device updated successfully!", "success")
         return redirect(url_for("device_detail", id=item.id))
 
-    return render_template("edit.html", item=item)
+    return render_template("edit.html", item=item, ecu_types=ECUType)
 
 @app.route("/toggle/<int:id>", methods=["POST"])
 def toggle_device(id):

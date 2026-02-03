@@ -8,6 +8,18 @@
         <input type="text" name="name" class="form-control" placeholder="Device name" required>
         <input type="text" name="ip" class="form-control" placeholder="Device IP (optional)">
 
+        <!-- ECU TYPE -->
+        <div>
+            <label class="form-label">ECU Type</label>
+            <select name="ecu_type" class="form-select" required>
+                {% for t in ecu_types %}
+                    <option value="{{ t.value }}">
+                        {{ t.name.title() }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
         <div class="d-flex justify-content-between">
             <a href="{{ url_for('index') }}" class="btn btn-secondary btn-icon">
                 <i class="bi bi-arrow-left"></i> Cancel

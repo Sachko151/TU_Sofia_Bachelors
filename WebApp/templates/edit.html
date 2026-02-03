@@ -6,6 +6,20 @@
     <form method="POST" class="d-flex flex-column gap-3">
         <input type="text" name="name" class="form-control" value="{{ item.name }}" required>
         <input type="text" name="ip" class="form-control" value="{{ item.ip }}">
+
+        <!-- ECU TYPE -->
+        <div>
+            <label class="form-label">ECU Type</label>
+            <select name="ecu_type" class="form-select" required>
+                {% for t in ecu_types %}
+                    <option value="{{ t.value }}"
+                        {% if item.ecu_type == t %}selected{% endif %}>
+                        {{ t.name.title() }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
         <div class="d-flex justify-content-between">
             <a href="{{ url_for('index') }}" class="btn btn-secondary btn-icon">
                 <i class="bi bi-arrow-left"></i> Cancel
