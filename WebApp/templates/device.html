@@ -11,7 +11,7 @@
         </div>
 
         <p class="text-muted">IP Address: {{ item.ip or "Not configured" }}</p>
-        <p class="text-muted">IP Address: {{ item.ecu_type or "Not configured" }}</p>
+        <p class="text-muted">ECU Type: {{ item.ecu_type.value }}</p>
 
         <hr>
 
@@ -42,9 +42,91 @@
 
         </div>
 
+        <!-- ================= ECU-SPECIFIC CONTROLS ================= -->
+        <hr>
+        <h4>Device Controls</h4>
+
+        {% if item.ecu_type.name == "AC" %}
+        <div class="card p-3 mt-3">
+            <h5>🌬 A/C Controls</h5>
+
+            <form method="POST" action="">
+                <label class="form-label">Fan Speed</label>
+                <input type="range" name="fan_speed" min="0" max="5" class="form-range">
+                <button name="action" value="set_fan" class="btn btn-primary w-100 mt-2">
+                    Set Fan Speed
+                </button>
+            </form>
+
+            <form method="POST" action="" class="mt-2">
+                <button name="action" value="swing" class="btn btn-outline-secondary w-100">
+                    Toggle Air Swing
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if item.ecu_type.name == "LIGHTS" %}
+        <div class="card p-3 mt-3">
+            <h5>💡 Light Controls</h5>
+
+            <form method="POST" action="">
+                <label class="form-label">Brightness</label>
+                <input type="range" name="brightness" min="0" max="100" class="form-range">
+                <button name="action" value="set_brightness" class="btn btn-primary w-100 mt-2">
+                    Apply Brightness
+                </button>
+            </form>
+
+            <form method="POST" action="" class="mt-2">
+                <button name="action" value="flash" class="btn btn-outline-warning w-100">
+                    Flash Lights
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if item.ecu_type.name == "DOOR" %}
+        <div class="card p-3 mt-3">
+            <h5>🚪 Door Controls</h5>
+
+            <form method="POST" action="">
+                <button name="action" value="lock" class="btn btn-danger w-100 mb-2">
+                    Lock Door
+                </button>
+                <button name="action" value="unlock" class="btn btn-success w-100">
+                    Unlock Door
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if item.ecu_type.name == "HEATING" %}
+        <div class="card p-3 mt-3">
+            <h5>🔥 Heating Controls</h5>
+
+            <form method="POST" action="">
+                <label class="form-label">Target Temperature</label>
+                <input type="range" name="temperature" min="15" max="30" step="0.5" class="form-range">
+                <button name="action" value="set_temp" class="btn btn-primary w-100 mt-2">
+                    Set Temperature
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if item.ecu_type.name == "TEMPERATURE_SENSOR" %}
+        <div class="card p-3 mt-3">
+            <h5>🌡 Sensor</h5>
+            <p class="text-muted">This device reports temperature via UDP. No manual controls available.</p>
+        </div>
+        {% endif %}
+
+        <!-- ========================================================== -->
+
         <hr>
 
-        <form method="POST" action="{{ url_for('delete', id=item.id) }}">
+        <form method="POST" action="">
             <button class="btn btn-outline-danger">
                 Delete Device
             </button>
