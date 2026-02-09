@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 from flask import flash
+from flask import Flask, send_file
 import enum
 from sqlalchemy import Enum
 
@@ -120,6 +121,17 @@ def device_detail(id):
     item = Item.query.get_or_404(id)
     return render_template("device.html", item=item)
 
+@app.route("/ota")
+def download_bin():
+    return send_file(
+        "ota_update/firmware.bin",   # path to your .bin file
+        as_attachment=True,     # forces download
+        download_name="firmware.bin",  # filename user sees
+        mimetype="application/octet-stream"
+    )
+@app.route("/version")
+def version():
+    return "1.0.1"   # change this when you upload new firmware
 
 if __name__ == "__main__":
     app.run(debug=True)
