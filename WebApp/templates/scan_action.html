@@ -1,0 +1,31 @@
+<h2>Scanning Devices...</h2>
+
+<p id="status">Starting scan...</p>
+<ul id="results"></ul>
+
+<script>
+function pollStatus() {
+    fetch("/scan/status")
+        .then(r => r.json())
+        .then(data => {
+
+            document.getElementById("status").textContent =
+                data.running ? "Scanning..." : "Scan Complete";
+
+            const list = document.getElementById("results");
+            list.innerHTML = "";
+
+            data.devices.forEach(d => {
+                const li = document.createElement("li");
+                li.textContent = d;
+                list.appendChild(li);
+            });
+
+            if (data.running) {
+                setTimeout(pollStatus, 1000);
+            }
+        });
+}
+
+pollStatus();
+</script>

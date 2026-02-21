@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 from flask import flash
 from flask import Flask, send_file
 import enum
 from sqlalchemy import Enum
+import threading
 
 
 app = Flask(__name__)
@@ -13,6 +14,10 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///items.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+devices = []
+scan_running = False
+lock = threading.Lock()
 
 class ECUType(enum.Enum):
     GENERIC = "generic"
@@ -119,7 +124,30 @@ def delete(id):
 @app.route("/device/<int:id>")
 def device_detail(id):
     item = Item.query.get_or_404(id)
+    ip = item.ip
     return render_template("device.html", item=item)
+
+@app.route("/scan/")
+def scan():
+    global scan_running
+    return render_template("scan.html", scan_running=scan_running)
+
+@app.route("/scan/status")
+def scan_status():
+    with lock:
+        return jsonify({
+            "running": scan_running,
+            "devices": devices
+        })
+
+@app.route("/scan/action")
+def scan_action():
+    global scan_running
+
+    if not scan_running:
+        threading.Thread(target=scan_worker, daemon=True).start()
+
+    return render_template("scan_action.html")
 
 @app.route("/ota")
 def download_bin():
@@ -132,6 +160,49 @@ def download_bin():
 @app.route("/version")
 def version():
     return "1.0.1"   # change this when you upload new firmware
+
+
+def scan_worker():
+    global devices, scan_running
+    print("Scanning begin!")
+
+    # Set initial state
+    with lock:
+        scan_running = True
+        devices = []
+
+    for x in range(100, 150):
+        ip = f"192.168.0.{x}"
+        print("Scanning:", ip)
+
+        try:
+            subprocess.run(
+                ["../OrangePI_SoC_Code/udp_tx", "-s", ip]
+            )
+
+            result = subprocess.run(
+                ["../OrangePI_SoC_Code/udp_rx", "-s"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if line:
+                    with lock:
+                        if line not in devices:
+                            devices.append(line)
+
+        except subprocess.TimeoutExpired:
+            print("No response from", ip)
+            continue
+
+    # Mark finished (ONLY ONCE)
+    with lock:
+        scan_running = False
+
+    print("Scanning complete!")
 
 if __name__ == "__main__":
     app.run(debug=True)
