@@ -1,3 +1,6 @@
+#=================================================================#
+#                        INCLUDES                                 #
+#=================================================================#
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
@@ -7,18 +10,22 @@ import enum
 from sqlalchemy import Enum
 import threading
 
-
+#=================================================================#
+#                        GLOBALS                                  #
+#=================================================================#
 app = Flask(__name__)
 app.secret_key = "TODO"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///items.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 db = SQLAlchemy(app)
-
 devices = []
+devices_last = []
 scan_running = False
 lock = threading.Lock()
 
+#=================================================================#
+#                        CLASSES                                  #
+#=================================================================#
 class ECUType(enum.Enum):
     GENERIC = "generic"
     AC = "ac"
@@ -44,13 +51,17 @@ class Item(db.Model):
 with app.app_context():
     db.create_all()
 
-# READ + CREATE
+#=================================================================#
+#                         INDEX ROUTE                             #
+#=================================================================#
 @app.route("/")
 def index():
     items = Item.query.all()
     return render_template("index.html", items=items)
 
-#CREATE
+#=================================================================#
+#                         CREATE ROUTE                            #
+#=================================================================#
 @app.route("/add", methods=["GET", "POST"])
 def add_device():
     if request.method == "POST":
@@ -67,7 +78,9 @@ def add_device():
 
     return render_template("add_device.html", ecu_types=ECUType)
 
-
+#=================================================================#
+#                  PING SPECIFIC DEVICE ROUTE                     #
+#=================================================================#
 @app.route("/ping/<int:id>")
 def ping(id):
     item = Item.query.get_or_404(id)
@@ -76,19 +89,27 @@ def ping(id):
         output = "No IP configured for this device."
     else:
         try:
+            subprocess.run(
+                ["../OrangePI_SoC_Code/udp_tx", "-e", ip],
+                timeout=1
+            )
+
+            # Wait for response
             result = subprocess.run(
-                ["ping", "-c", "4", ip],  # Unix, for Windows use ["ping", "-n", "4", ip]
+                ["../OrangePI_SoC_Code/udp_rx", "-e"],
                 capture_output=True,
                 text=True,
                 timeout=5
             )
-            output = result.stdout
-        except Exception as e:
-            output = str(e)
+            output = result.stdout.strip()
+        except subprocess.TimeoutExpired:
+            print("No response from", ip)
 
     return render_template("ping.html", output=output, item=item)
 
-# UPDATE
+#=================================================================#
+#                       UPDATE ROUTE                              #
+#=================================================================#
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 def edit(id):
     item = Item.query.get_or_404(id)
@@ -103,6 +124,9 @@ def edit(id):
 
     return render_template("edit.html", item=item, ecu_types=ECUType)
 
+#=================================================================#
+#                       TOGGLE OFF                                #
+#=================================================================#
 @app.route("/toggle/<int:id>", methods=["POST"])
 def toggle_device(id):
     item = Item.query.get_or_404(id)
@@ -112,7 +136,9 @@ def toggle_device(id):
     flash(f"{item.name} turned {'ON' if item.state else 'OFF'}")
     return redirect(url_for("index"))
 
-# DELETE
+#=================================================================#
+#                       DELETE ROUTE                              #
+#=================================================================#
 @app.route("/delete/<int:id>")
 def delete(id):
     item = Item.query.get_or_404(id)
@@ -120,18 +146,34 @@ def delete(id):
     db.session.commit()
     return redirect(url_for("index"))
 
-# DEVICE DETAILS
+#=================================================================#
+#                       RESET ROUTE?                              #
+#=================================================================#
+@app.route("/request_reset/<ip>")
+def request_reset(ip):
+    subprocess.run(["../OrangePI_SoC_Code/udp_tx", "-r", ip])
+    return redirect(url_for("index"))
+
+#=================================================================#
+#                       DEVICE DETAILS                            #
+#=================================================================#
 @app.route("/device/<int:id>")
 def device_detail(id):
     item = Item.query.get_or_404(id)
     ip = item.ip
     return render_template("device.html", item=item)
 
+#=================================================================#
+#                       SCAN ROUTE PAGE                           #
+#=================================================================#
 @app.route("/scan/")
 def scan():
     global scan_running
-    return render_template("scan.html", scan_running=scan_running)
+    return render_template("scan.html", scan_running=scan_running, devices_last=devices_last)
 
+#=================================================================#
+#               CURRENT SCAN STATUS WORKER ROUTE                  #
+#=================================================================#
 @app.route("/scan/status")
 def scan_status():
     with lock:
@@ -139,7 +181,16 @@ def scan_status():
             "running": scan_running,
             "devices": devices
         })
+#=================================================================#
+#                 LAST SCANNED DEVICES ROUTE                      #
+#=================================================================#    
+@app.route("/scan/last_scan")
+def last_scan():
+    return render_template("last_scan.html", devices_last=devices_last)
 
+#=================================================================#
+#                    SCAN BEGIN ROUTE                             #
+#=================================================================#  
 @app.route("/scan/action")
 def scan_action():
     global scan_running
@@ -149,6 +200,9 @@ def scan_action():
 
     return render_template("scan_action.html")
 
+#=================================================================#
+#                ESP FIRMWARE FOR OTA ROUTE                       #
+#=================================================================#
 @app.route("/ota")
 def download_bin():
     return send_file(
@@ -157,11 +211,17 @@ def download_bin():
         download_name="firmware.bin",  # filename user sees
         mimetype="application/octet-stream"
     )
+
+#=================================================================#
+#            ESP FIRMWARE VERSION STRING FOR OTA ROUTE            #
+#=================================================================#
 @app.route("/version")
 def version():
     return "1.0.1"   # change this when you upload new firmware
 
-
+#=================================================================#
+#               FUNCTION WORKER FOR BACKGROUND SCAN               #
+#=================================================================#
 def scan_worker():
     global devices, scan_running
     print("Scanning begin!")
@@ -193,6 +253,7 @@ def scan_worker():
                     with lock:
                         if line not in devices:
                             devices.append(line)
+                            devices_last.append(line)
 
         except subprocess.TimeoutExpired:
             print("No response from", ip)
@@ -204,5 +265,9 @@ def scan_worker():
 
     print("Scanning complete!")
 
+
+#=================================================================#
+#                          MAIN                                   #
+#=================================================================#
 if __name__ == "__main__":
     app.run(debug=True)
