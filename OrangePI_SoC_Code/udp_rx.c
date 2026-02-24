@@ -1,3 +1,6 @@
+/*================================================================
+                        INCLUDES
+=================================================================*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,11 +9,44 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+/*================================================================
+                        DEFINES
+=================================================================*/
 #define UDP_PORT 151
 #define BUFFER_SIZE 1024
 
-// Function to create and bind a UDP socket
-int setup_udp_socket(uint16_t port) {
+/*================================================================
+                    Prototype Declarations
+=================================================================*/
+static void receive_udp_payload(int sock, int argc, char** argv);
+static int setup_udp_socket(uint16_t port);
+
+/*================================================================
+                        Main function
+=================================================================*/
+int main(int argc, char** argv) {
+    int sock = setup_udp_socket(UDP_PORT);
+    if (sock < 0) {
+        return 1;
+    }
+
+    if(argc < 2 || (argv[1][1] != 's'))
+    {
+        printf("UDP server listening on port %d...\n", UDP_PORT);
+    }
+
+    receive_udp_payload(sock, argc, argv);
+
+    close(sock);
+    return 0;
+}
+
+/*================================================================
+Function Used in order to setup an UDP socket, takes the port as an
+argument.
+=================================================================*/
+static int setup_udp_socket(uint16_t port) 
+{
     int sock;
     struct sockaddr_in addr;
 
@@ -34,8 +70,13 @@ int setup_udp_socket(uint16_t port) {
     return sock;
 }
 
-// Function to receive a UDP payload and print it in hex
-void receive_udp_payload(int sock, int argc, char** argv) {
+/*================================================================
+Function receives payload based on a previously opened UDP socket
+Takes the opened socket and command line parameters in order to
+fullfill specific Logic
+=================================================================*/
+static void receive_udp_payload(int sock, int argc, char** argv) 
+{
     uint8_t buffer[BUFFER_SIZE];
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
@@ -68,23 +109,4 @@ void receive_udp_payload(int sock, int argc, char** argv) {
             inet_ntoa(client_addr.sin_addr),
             ntohs(client_addr.sin_port));
     }
-}
-
-int main(int argc, char** argv) {
-    int sock = setup_udp_socket(UDP_PORT);
-    if (sock < 0) {
-        return 1;
-    }
-
-    if(argc < 2 || (argv[1][1] != 's'))
-    {
-        printf("UDP server listening on port %d...\n", UDP_PORT);
-    }
-
-    receive_udp_payload(sock, argc, argv);
-
-    
-
-    close(sock);
-    return 0;
 }

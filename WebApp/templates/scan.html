@@ -4,8 +4,14 @@
 <h1>SCAN PAGE!</h1>
 <p>Scan LAN for IoT devices, Will return a list of available devices in order to control!</p>
 <div class="col-md-4">
-    <a href="{{ url_for('scan_action')}}" class="btn btn-success btn-lg w-100">
-        {{ "See" if scan_running else "Begin" }} Scan
+    {% if devices_last%}
+    <a href="{{ url_for('last_scan') }}" class="btn btn-success btn-lg w-100">
+        See Scan History
     </a>
+    {% endif %}
+    <a href="{{ url_for('scan_action') }}" class="btn btn-primary btn-lg w-100">
+        Begin Scan
+    </a>
+
 </div>
 {% endblock %}

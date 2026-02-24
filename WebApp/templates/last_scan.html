@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-wifi"></i> Last Scan Results</h2>
+    <a href="{{ url_for('scan_action') }}" class="btn btn-primary btn-icon">
+        <i class="bi bi-arrow-clockwise"></i> Run New Scan
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        {% if devices_last and devices_last|length > 0 %}
+            <ul class="list-group list-group-flush">
+                {% for device in devices_last %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-monospace">{{ device }}</span>
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Online
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-muted text-center py-4">
+                <i class="bi bi-exclamation-circle fs-4"></i>
+                <p class="mt-2 mb-0">No devices found in the last scan.</p>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

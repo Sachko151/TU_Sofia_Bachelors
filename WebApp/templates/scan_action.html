@@ -3,6 +3,10 @@
 <p id="status">Starting scan...</p>
 <ul id="results"></ul>
 
+
+
+
+
 <script>
 function pollStatus() {
     fetch("/scan/status")
@@ -26,6 +30,5 @@ function pollStatus() {
             }
         });
 }
-
 pollStatus();
 </script>
