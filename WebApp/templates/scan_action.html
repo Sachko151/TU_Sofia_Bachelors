@@ -1,34 +1,105 @@
-<h2>Scanning Devices...</h2>
+{% extends "base.html" %}
+{% block content %}
 
-<p id="status">Starting scan...</p>
-<ul id="results"></ul>
+<div class="container mt-4">
 
+    <h1 class="mb-3">Scanning Devices</h1>
+    <p class="text-muted">
+        Select an IP range and scan your local network for available devices.
+    </p>
 
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <label class="form-label">Start IP</label>
+            <input type="number" id="startIp" value="100" class="form-control">
+        </div>
 
+        <div class="col-md-3">
+            <label class="form-label">End IP</label>
+            <input type="number" id="endIp" value="150" class="form-control">
+        </div>
 
+        <div class="col-md-3 d-flex align-items-end">
+            <button onclick="startScan()" class="btn btn-primary w-100">
+                Start Scan
+            </button>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <h5>Status:</h5>
+        <p id="status" class="fw-bold text-secondary">Idle</p>
+    </div>
+
+    <div>
+        <h5>Discovered Devices:</h5>
+        <ul id="results" class="list-group"></ul>
+    </div>
+
+</div>
 
 <script>
+function startScan() {
+    const start = document.getElementById("startIp").value;
+    const end = document.getElementById("endIp").value;
+
+    document.getElementById("status").textContent = "Starting scan...";
+
+    fetch(`/scan/action?start=${start}&end=${end}`)
+        .then(res => res.json())
+        .then(() => {
+            pollStatus();
+        });
+}
+
 function pollStatus() {
     fetch("/scan/status")
         .then(r => r.json())
         .then(data => {
 
-            document.getElementById("status").textContent =
-                data.running ? "Scanning..." : "Scan Complete";
+            const statusEl = document.getElementById("status");
+
+            if (data.running) {
+                statusEl.textContent = "Scanning...";
+            } else {
+                statusEl.textContent = `Scan Complete (${data.devices.length} devices found)`;
+            }
 
             const list = document.getElementById("results");
             list.innerHTML = "";
 
             data.devices.forEach(d => {
                 const li = document.createElement("li");
+                li.className = "list-group-item";
                 li.textContent = d;
                 list.appendChild(li);
             });
 
             if (data.running) {
                 setTimeout(pollStatus, 1000);
+            } else {
+                onScanFinished(data);
             }
         });
 }
-pollStatus();
+
+function onScanFinished(data) {
+    console.log("Scan finished");
+
+    // Example: re-enable button
+    const btn = document.querySelector("button");
+    if (btn) btn.disabled = false;
+
+    // Example: highlight status
+    const statusEl = document.getElementById("status");
+    statusEl.classList.remove("text-secondary");
+    statusEl.classList.add("text-success");
+    if (data.devices.length === 0) {
+        statusEl.textContent = "Scan Complete (no devices found)";
+    } else {
+        statusEl.textContent = `Scan Complete (${data.devices.length} devices found)`;
+    }
+}
 </script>
+
+{% endblock %}
