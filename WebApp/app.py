@@ -103,6 +103,7 @@ def ping(id):
             )
             output = result.stdout.strip()
         except subprocess.TimeoutExpired:
+            output = f"No response from, {ip}"
             print("No response from", ip)
 
     return render_template("ping.html", output=output, item=item)
@@ -195,8 +196,15 @@ def last_scan():
 def scan_action():
     global scan_running
 
+    start = int(request.args.get("start", 100))
+    end = int(request.args.get("end", 150))
+
     if not scan_running:
-        threading.Thread(target=scan_worker, daemon=True).start()
+        threading.Thread(
+            target=scan_worker,
+            args=(start, end),
+            daemon=True
+        ).start()
 
     return render_template("scan_action.html")
 
@@ -222,17 +230,16 @@ def version():
 #=================================================================#
 #               FUNCTION WORKER FOR BACKGROUND SCAN               #
 #=================================================================#
-def scan_worker():
+def scan_worker(start_ip, end_ip):
     global devices, scan_running
     print("Scanning begin!")
 
-    # Set initial state
     with lock:
         scan_running = True
         devices = []
 
-    for x in range(100, 150):
-        ip = f"192.168.0.{x}"
+    for x in range(start_ip, end_ip + 1):
+        ip = f"192.168.1.{x}"
         print("Scanning:", ip)
 
         try:
@@ -259,7 +266,6 @@ def scan_worker():
             print("No response from", ip)
             continue
 
-    # Mark finished (ONLY ONCE)
     with lock:
         scan_running = False
 

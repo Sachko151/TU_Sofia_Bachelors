@@ -39,10 +39,10 @@ typedef enum
                       GLOBALS/CONST
 =================================================================*/
 const char* firmwareUrl = OTA_CHECK_URL;
-const char* ssid = "TP-Link-151";
-const char* password = "Sachko151!";
-// const char* ssid = "2__1__3";
-// const char* password = "Mehana213";
+// const char* ssid = "TP-Link-151";
+// const char* password = "Sachko151!";
+const char* ssid = "2__1__3";
+const char* password = "Mehana213";
 String fw_ver = "1.0.1";
 WiFiUDP udp;
 uint8_t current_state = idle_state;
