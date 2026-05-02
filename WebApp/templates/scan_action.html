@@ -5,53 +5,47 @@
 
     <h1 class="mb-3">Scanning Devices</h1>
     <p class="text-muted">
-        Select an IP range and scan your local network for available devices.
+        Scanning LAN for IoT devices. Results will appear below in real time.
     </p>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <label class="form-label">Start IP</label>
-            <input type="number" id="startIp" value="100" class="form-control">
-        </div>
-
-        <div class="col-md-3">
-            <label class="form-label">End IP</label>
-            <input type="number" id="endIp" value="150" class="form-control">
-        </div>
-
-        <div class="col-md-3 d-flex align-items-end">
-            <button onclick="startScan()" class="btn btn-primary w-100">
-                Start Scan
-            </button>
+    <!-- Status Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body text-center">
+            <h5 class="card-title">Scan Status</h5>
+            <p id="status" class="fs-5 fw-bold text-primary">
+                Starting scan...
+            </p>
         </div>
     </div>
 
-    <div class="mb-3">
-        <h5>Status:</h5>
-        <p id="status" class="fw-bold text-secondary">Idle</p>
+    <!-- Results -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Discovered Devices</h5>
+
+            <ul id="results" class="list-group list-group-flush">
+                <!-- Devices will be inserted here -->
+            </ul>
+
+        </div>
     </div>
 
-    <div>
-        <h5>Discovered Devices:</h5>
-        <ul id="results" class="list-group"></ul>
+    <!-- Buttons -->
+    <div class="mt-4">
+        <a href="{{ url_for('scan_action') }}" class="btn btn-primary btn-lg w-100 mb-2">
+            Restart Scan
+        </a>
+
+        {% if devices_last %}
+        <a href="{{ url_for('last_scan') }}" class="btn btn-success btn-lg w-100">
+            See Scan History
+        </a>
+        {% endif %}
     </div>
 
 </div>
 
 <script>
-function startScan() {
-    const start = document.getElementById("startIp").value;
-    const end = document.getElementById("endIp").value;
-
-    document.getElementById("status").textContent = "Starting scan...";
-
-    fetch(`/scan/action?start=${start}&end=${end}`)
-        .then(res => res.json())
-        .then(() => {
-            pollStatus();
-        });
-}
-
 function pollStatus() {
     fetch("/scan/status")
         .then(r => r.json())
@@ -61,8 +55,12 @@ function pollStatus() {
 
             if (data.running) {
                 statusEl.textContent = "Scanning...";
+                statusEl.classList.remove("text-success");
+                statusEl.classList.add("text-primary");
             } else {
-                statusEl.textContent = `Scan Complete (${data.devices.length} devices found)`;
+                statusEl.textContent = "Scan Complete";
+                statusEl.classList.remove("text-primary");
+                statusEl.classList.add("text-success");
             }
 
             const list = document.getElementById("results");
@@ -77,29 +75,11 @@ function pollStatus() {
 
             if (data.running) {
                 setTimeout(pollStatus, 1000);
-            } else {
-                onScanFinished(data);
             }
         });
 }
 
-function onScanFinished(data) {
-    console.log("Scan finished");
-
-    // Example: re-enable button
-    const btn = document.querySelector("button");
-    if (btn) btn.disabled = false;
-
-    // Example: highlight status
-    const statusEl = document.getElementById("status");
-    statusEl.classList.remove("text-secondary");
-    statusEl.classList.add("text-success");
-    if (data.devices.length === 0) {
-        statusEl.textContent = "Scan Complete (no devices found)";
-    } else {
-        statusEl.textContent = `Scan Complete (${data.devices.length} devices found)`;
-    }
-}
+pollStatus();
 </script>
 
 {% endblock %}
