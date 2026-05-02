@@ -9,6 +9,7 @@ from flask import Flask, send_file
 import enum
 from sqlalchemy import Enum
 import threading
+import re
 
 #=================================================================#
 #                        GLOBALS                                  #
@@ -196,15 +197,8 @@ def last_scan():
 def scan_action():
     global scan_running
 
-    start = int(request.args.get("start", 100))
-    end = int(request.args.get("end", 150))
-
     if not scan_running:
-        threading.Thread(
-            target=scan_worker,
-            args=(start, end),
-            daemon=True
-        ).start()
+        threading.Thread(target=scan_worker, daemon=True).start()
 
     return render_template("scan_action.html")
 
@@ -230,16 +224,26 @@ def version():
 #=================================================================#
 #               FUNCTION WORKER FOR BACKGROUND SCAN               #
 #=================================================================#
-def scan_worker(start_ip, end_ip):
+def scan_worker():
     global devices, scan_running
     print("Scanning begin!")
 
+    # Set initial state
     with lock:
         scan_running = True
         devices = []
 
-    for x in range(start_ip, end_ip + 1):
-        ip = f"192.168.1.{x}"
+    local_ip = get_local_ip()
+
+    if not local_ip:
+        print("Could not determine local IP")
+        return
+
+    parts = local_ip.split(".")
+    base_ip = f"{parts[0]}.{parts[1]}.{parts[2]}"
+
+    for y in range(1, 255):
+        ip = f"{base_ip}.{y}"
         print("Scanning:", ip)
 
         try:
@@ -266,10 +270,21 @@ def scan_worker(start_ip, end_ip):
             print("No response from", ip)
             continue
 
+    # Mark finished (ONLY ONCE)
     with lock:
         scan_running = False
 
     print("Scanning complete!")
+
+def get_local_ip():
+    result = subprocess.run(["ip", "a"], capture_output=True, text=True)
+    output = result.stdout
+
+    # Match something like 192.168.x.y
+    match = re.search(r"inet (192\.168\.\d+\.\d+)", output)
+    if match:
+        return match.group(1)
+    return None
 
 
 #=================================================================#
