@@ -10,6 +10,14 @@ import enum
 from sqlalchemy import Enum
 import threading
 import re
+import glob
+import cv2
+import time
+import os
+
+camera_threads = {}
+camera_stop_flags = {}
+FRAME_FOLDER = "static/frames"
 
 #=================================================================#
 #                        GLOBALS                                  #
@@ -23,6 +31,7 @@ devices = []
 devices_last = []
 scan_running = False
 lock = threading.Lock()
+camera_processes = {}
 
 #=================================================================#
 #                        CLASSES                                  #
@@ -34,6 +43,7 @@ class ECUType(enum.Enum):
     HEATING = "engine"
     DOOR = "doors"
     TEMPERATURE_SENSOR = "sensor"
+    IP_CAMERA = "ip_camera"
 
 # Model
 class Item(db.Model):
@@ -41,6 +51,7 @@ class Item(db.Model):
     name = db.Column(db.String(100), nullable=False)
     state = db.Column(db.Boolean, default=False)
     ip = db.Column(db.String(15), nullable=True)
+    rtsp_url = db.Column(db.String(255), nullable=True)
 
     ecu_type = db.Column(
         Enum(ECUType),
@@ -69,8 +80,9 @@ def add_device():
         name = request.form.get("name")
         ip = request.form.get("ip")
         ecu_type = ECUType(request.form.get("ecu_type"))
+        rtsp_url = request.form.get("rtsp_url")
 
-        new_item = Item(name=name, ip=ip, ecu_type=ecu_type)
+        new_item = Item(name=name, ip=ip, ecu_type=ecu_type, rtsp_url=rtsp_url)
         db.session.add(new_item)
         db.session.commit()
 
@@ -120,6 +132,7 @@ def edit(id):
         item.name = request.form.get("name")
         item.ip = request.form.get("ip")
         item.ecu_type = ECUType(request.form.get("ecu_type"))
+        item.rtsp_url = request.form.get("rtsp_url")
         db.session.commit()
         flash("Device updated successfully!", "success")
         return redirect(url_for("device_detail", id=item.id))
@@ -162,7 +175,10 @@ def request_reset(ip):
 @app.route("/device/<int:id>")
 def device_detail(id):
     item = Item.query.get_or_404(id)
-    ip = item.ip
+
+    if item.ecu_type == ECUType.IP_CAMERA and item.rtsp_url:
+        start_camera_stream(item.id, item.rtsp_url)
+
     return render_template("device.html", item=item)
 
 #=================================================================#
@@ -286,9 +302,69 @@ def get_local_ip():
         return match.group(1)
     return None
 
+def camera_worker(device_id, rtsp_url, stop_flag):
+    cap = cv2.VideoCapture(rtsp_url)
 
+    if not cap.isOpened():
+        print(f"[{device_id}] Failed to connect to camera")
+        return
+
+    save_dir = os.path.join(FRAME_FOLDER, str(device_id))
+    os.makedirs(save_dir, exist_ok=True)
+
+    latest_path = os.path.join(save_dir, "frame_latest.jpg")
+
+    print(f"[{device_id}] Camera started")
+
+    while not stop_flag.is_set():
+
+        ret, frame = cap.read()
+
+        if not ret:
+            print(f"[{device_id}] Frame read failed")
+            break
+
+        # ALWAYS overwrite same file
+        cv2.imwrite(latest_path, frame)
+
+        time.sleep(0.5)  # 1 FPS snapshot
+
+    cap.release()
+    print(f"[{device_id}] Camera stopped")
+
+def stop_camera_stream(device_id):
+    if device_id in camera_stop_flags:
+        camera_stop_flags[device_id].set()
+
+    if device_id in camera_threads:
+        camera_threads.pop(device_id, None)
+
+    camera_stop_flags.pop(device_id, None)
+
+    print(f"Stopped camera {device_id}")
+
+def start_camera_stream(device_id, rtsp_url):
+
+    if device_id in camera_threads:
+        print(f"Camera {device_id} already running")
+        return
+
+    stop_flag = threading.Event()
+    camera_stop_flags[device_id] = stop_flag
+
+    thread = threading.Thread(
+        target=camera_worker,
+        args=(device_id, rtsp_url, stop_flag),
+        daemon=True
+    )
+
+    camera_threads[device_id] = thread
+    thread.start()
+
+    print(f"Started camera thread for device {device_id}")
 #=================================================================#
 #                          MAIN                                   #
 #=================================================================#
 if __name__ == "__main__":
+    os.makedirs(HLS_FOLDER, exist_ok=True)
     app.run(debug=True)

@@ -3,138 +3,345 @@
 
 <div class="container">
     <div class="card shadow-sm p-4">
+
+        <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center">
             <h2>{{ item.name }}</h2>
+
             <span class="badge bg-{{ 'success' if item.state else 'secondary' }}">
                 {{ "ON" if item.state else "OFF" }}
             </span>
         </div>
 
-        <p class="text-muted">IP Address: {{ item.ip or "Not configured" }}</p>
-        <p class="text-muted">ECU Type: {{ item.ecu_type.value }}</p>
+        <!-- DEVICE INFO -->
+        <p class="text-muted mb-1">
+            IP Address: {{ item.ip or "Not configured" }}
+        </p>
+
+        <p class="text-muted mb-1">
+            ECU Type: {{ item.ecu_type.value }}
+        </p>
+
+        {% if item.rtsp_url %}
+        <p class="text-muted">
+            RTSP Stream Configured
+        </p>
+        {% endif %}
 
         <hr>
 
+        <!-- ACTION BUTTONS -->
         <div class="row g-3">
 
-            <!-- Power Toggle -->
             <div class="col-md-4">
-                <!-- Toggle ON/OFF -->
-                <a href="{{ url_for('request_reset', ip=item.ip) }}" class="btn btn-warning btn-sm btn-icon">
-                    <i class="bi bi-speedometer2"></i> Request Reset
+                <a href="{{ url_for('request_reset', ip=item.ip) }}"
+                   class="btn btn-warning btn-lg w-100">
+                    Request Reset
                 </a>
             </div>
 
-            <!-- Ping -->
             <div class="col-md-4">
-                <a href="{{ url_for('ping', id=item.id) }}" class="btn btn-info btn-lg w-100">
+                <a href="{{ url_for('ping', id=item.id) }}"
+                   class="btn btn-info btn-lg w-100">
                     Ping Device
                 </a>
             </div>
 
-            <!-- Edit -->
             <div class="col-md-4">
-                <a href="{{ url_for('edit', id=item.id) }}" class="btn btn-warning btn-lg w-100">
+                <a href="{{ url_for('edit', id=item.id) }}"
+                   class="btn btn-warning btn-lg w-100">
                     Edit Settings
                 </a>
             </div>
 
         </div>
 
-        <!-- ================= ECU-SPECIFIC CONTROLS ================= -->
+        <!-- ====================================================== -->
+        <!-- IP CAMERA SECTION -->
+        <!-- ====================================================== -->
+
+        {% if item.ecu_type.name == "IP_CAMERA" %}
+
         <hr>
+
+        <div class="card p-3 mt-3">
+
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">📷 Live Camera Feed</h4>
+
+                <span class="badge bg-dark">
+                    OpenCV Frame Stream
+                </span>
+            </div>
+
+            <div class="mt-3">
+
+                {% if item.rtsp_url %}
+
+                <!-- LIVE IMAGE STREAM -->
+                <div class="text-center">
+
+                    <img
+                        id="cameraFrame"
+                        class="w-100 rounded border"
+                        style="max-height: 600px; background: black;"
+                        src="/static/frames/{{ item.id }}/frame_latest.jpg"
+                        alt="Camera Feed"
+                    >
+
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Auto-refreshing every 1 second
+                        </small>
+                    </div>
+
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-warning mt-3">
+                    No RTSP URL configured for this camera.
+                </div>
+
+                {% endif %}
+
+            </div>
+        </div>
+
+        {% endif %}
+
+        <hr>
+
+        <!-- DEVICE CONTROLS -->
         <h4>Device Controls</h4>
+
+        {% if output %}
         <pre>{{ output }}</pre>
+        {% endif %}
+
+        <!-- AC -->
         {% if item.ecu_type.name == "AC" %}
         <div class="card p-3 mt-3">
             <h5>🌬 A/C Controls</h5>
 
-            <form method="POST" action="">
-                <label class="form-label">Fan Speed</label>
-                <input type="range" name="fan_speed" min="0" max="5" class="form-range">
-                <button name="action" value="set_fan" class="btn btn-primary w-100 mt-2">
+            <!-- Power -->
+            <form method="POST" class="mb-3">
+                <button name="action" value="ac_on"
+                        class="btn btn-success w-100 mb-2">
+                    Turn ON
+                </button>
+
+                <button name="action" value="ac_off"
+                        class="btn btn-danger w-100">
+                    Turn OFF
+                </button>
+            </form>
+
+            <!-- Temperature -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">
+                    Temperature: <span id="tempValue">22</span>°C
+                </label>
+
+                <input type="range"
+                    name="temperature"
+                    min="16"
+                    max="30"
+                    value="22"
+                    class="form-range"
+                    oninput="tempValue.innerText=this.value">
+
+                <button name="action" value="set_temp"
+                        class="btn btn-primary w-100 mt-2">
+                    Set Temperature
+                </button>
+            </form>
+
+            <!-- Fan Speed -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">
+                    Fan Speed
+                </label>
+
+                <input type="range"
+                    name="fan_speed"
+                    min="0"
+                    max="5"
+                    class="form-range">
+
+                <button name="action" value="set_fan"
+                        class="btn btn-primary w-100 mt-2">
                     Set Fan Speed
                 </button>
             </form>
 
-            <form method="POST" action="" class="mt-2">
-                <button name="action" value="swing" class="btn btn-outline-secondary w-100">
-                    Toggle Air Swing
+            <!-- Mode Selection -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Mode</label>
+
+                <select name="ac_mode" class="form-select">
+                    <option value="cool">❄ Cool</option>
+                    <option value="heat">🔥 Heat</option>
+                    <option value="dry">💧 Dry</option>
+                    <option value="fan">🌀 Fan Only</option>
+                    <option value="auto">🤖 Auto</option>
+                </select>
+
+                <button name="action" value="set_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Set Mode
                 </button>
             </form>
+
+            <!-- Swing -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Air Swing</label>
+
+                <select name="swing_mode" class="form-select">
+                    <option value="off">Off</option>
+                    <option value="vertical">Vertical</option>
+                    <option value="horizontal">Horizontal</option>
+                    <option value="both">Both</option>
+                </select>
+
+                <button name="action" value="set_swing"
+                        class="btn btn-info w-100 mt-2">
+                    Set Swing
+                </button>
+            </form>
+
+            <!-- Turbo / Eco -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+                    <button name="action" value="turbo_mode"
+                            class="btn btn-warning">
+                        ⚡ Turbo Mode
+                    </button>
+
+                    <button name="action" value="eco_mode"
+                            class="btn btn-success">
+                        🌱 Eco Mode
+                    </button>
+
+                    <button name="action" value="sleep_mode"
+                            class="btn btn-dark">
+                        😴 Sleep Mode
+                    </button>
+                </div>
+            </form>
+
+            <!-- Status Display -->
+            <div class="alert alert-light mt-3">
+                <strong>Status:</strong><br>
+                Power: ON<br>
+                Temp: 22°C<br>
+                Mode: Cool<br>
+                Fan: 3
+            </div>
         </div>
         {% endif %}
 
+        <!-- LIGHTS -->
         {% if item.ecu_type.name == "LIGHTS" %}
         <div class="card p-3 mt-3">
             <h5>💡 Light Controls</h5>
 
-            <form method="POST" action="">
+            <form method="POST">
                 <label class="form-label">Brightness</label>
                 <input type="range" name="brightness" min="0" max="100" class="form-range">
-                <button name="action" value="set_brightness" class="btn btn-primary w-100 mt-2">
-                    Apply Brightness
-                </button>
-            </form>
 
-            <form method="POST" action="" class="mt-2">
-                <button name="action" value="flash" class="btn btn-outline-warning w-100">
-                    Flash Lights
+                <button name="action" value="set_brightness"
+                        class="btn btn-primary w-100 mt-2">
+                    Apply Brightness
                 </button>
             </form>
         </div>
         {% endif %}
 
+        <!-- DOOR -->
         {% if item.ecu_type.name == "DOOR" %}
         <div class="card p-3 mt-3">
             <h5>🚪 Door Controls</h5>
 
-            <form method="POST" action="">
-                <button name="action" value="lock" class="btn btn-danger w-100 mb-2">
+            <form method="POST">
+                <button name="action" value="lock"
+                        class="btn btn-danger w-100 mb-2">
                     Lock Door
                 </button>
-                <button name="action" value="unlock" class="btn btn-success w-100">
+
+                <button name="action" value="unlock"
+                        class="btn btn-success w-100">
                     Unlock Door
                 </button>
             </form>
         </div>
         {% endif %}
 
+        <!-- HEATING -->
         {% if item.ecu_type.name == "HEATING" %}
         <div class="card p-3 mt-3">
             <h5>🔥 Heating Controls</h5>
 
-            <form method="POST" action="">
-                <label class="form-label">Target Temperature</label>
+            <form method="POST">
+                <label class="form-label">Temperature</label>
                 <input type="range" name="temperature" min="15" max="30" step="0.5" class="form-range">
-                <button name="action" value="set_temp" class="btn btn-primary w-100 mt-2">
+
+                <button name="action" value="set_temp"
+                        class="btn btn-primary w-100 mt-2">
                     Set Temperature
                 </button>
             </form>
         </div>
         {% endif %}
 
+        <!-- TEMP SENSOR -->
         {% if item.ecu_type.name == "TEMPERATURE_SENSOR" %}
         <div class="card p-3 mt-3">
             <h5>🌡 Sensor</h5>
-            <p class="text-muted">This device reports temperature via UDP. No manual controls available.</p>
+            <p class="text-muted">
+                This device reports temperature via UDP.
+            </p>
         </div>
         {% endif %}
 
-        <!-- ========================================================== -->
-
         <hr>
 
-        <form method="POST" action="">
+        <!-- DELETE -->
+        <form method="POST" action="{{ url_for('delete', id=item.id) }}">
             <button class="btn btn-outline-danger">
                 Delete Device
             </button>
         </form>
 
         <br>
-        <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+
+        <a href="{{ url_for('index') }}">
+            ⬅ Back to Dashboard
+        </a>
 
     </div>
 </div>
+
+<!-- ========================================================== -->
+<!-- AUTO REFRESH SCRIPT -->
+<!-- ========================================================== -->
+
+{% if item.ecu_type.name == "IP_CAMERA" and item.rtsp_url %}
+
+<script>
+
+function refreshFrame() {
+    const img = document.getElementById("cameraFrame");
+    if (!img) return;
+
+    img.src = "/static/frames/{{ item.id }}/frame_latest.jpg?t=" + new Date().getTime();
+}
+
+// refresh every 1 second
+setInterval(refreshFrame, 500);
+
+</script>
+
+{% endif %}
 
 {% endblock %}
