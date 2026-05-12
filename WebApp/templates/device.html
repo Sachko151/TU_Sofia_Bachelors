@@ -180,11 +180,11 @@
                 <label class="form-label">Mode</label>
 
                 <select name="ac_mode" class="form-select">
-                    <option value="cool">❄ Cool</option>
-                    <option value="heat">🔥 Heat</option>
-                    <option value="dry">💧 Dry</option>
-                    <option value="fan">🌀 Fan Only</option>
-                    <option value="auto">🤖 Auto</option>
+                    <option value="cool">Cool</option>
+                    <option value="heat"> Heat</option>
+                    <option value="dry"> Dry</option>
+                    <option value="fan"> Fan Only</option>
+                    <option value="auto"> Auto</option>
                 </select>
 
                 <button name="action" value="set_mode"
@@ -220,12 +220,12 @@
 
                     <button name="action" value="eco_mode"
                             class="btn btn-success">
-                        🌱 Eco Mode
+                        Eco Mode
                     </button>
 
                     <button name="action" value="sleep_mode"
                             class="btn btn-dark">
-                        😴 Sleep Mode
+                        Sleep Mode
                     </button>
                 </div>
             </form>
@@ -244,60 +244,438 @@
         <!-- LIGHTS -->
         {% if item.ecu_type.name == "LIGHTS" %}
         <div class="card p-3 mt-3">
-            <h5>💡 Light Controls</h5>
+            <h5> Light Controls</h5>
 
-            <form method="POST">
-                <label class="form-label">Brightness</label>
-                <input type="range" name="brightness" min="0" max="100" class="form-range">
+            <!-- Main Power -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+                    <button name="action" value="lights_on"
+                            class="btn btn-success">
+                        Turn ON
+                    </button>
+
+                    <button name="action" value="lights_off"
+                            class="btn btn-danger">
+                        Turn OFF
+                    </button>
+                </div>
+            </form>
+
+            <!-- Brightness -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">
+                    Brightness:
+                    <span id="brightnessValue">50</span>%
+                </label>
+
+                <input type="range"
+                    name="brightness"
+                    min="0"
+                    max="100"
+                    value="50"
+                    class="form-range"
+                    oninput="brightnessValue.innerText=this.value">
 
                 <button name="action" value="set_brightness"
                         class="btn btn-primary w-100 mt-2">
                     Apply Brightness
                 </button>
             </form>
+
+            <!-- Light Mode -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Lighting Mode</label>
+
+                <select name="light_mode" class="form-select">
+                    <option value="normal"> Normal</option>
+                    <option value="night"> Night</option>
+                    <option value="reading"> Reading</option>
+                    <option value="ambient"> Ambient</option>
+                    <option value="party"> Party</option>
+                    <option value="emergency"> Emergency</option>
+                </select>
+
+                <button name="action" value="set_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Set Mode
+                </button>
+            </form>
+
+            <!-- Color Selection -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Light Color</label>
+
+                <input type="color"
+                    name="light_color"
+                    value="#ffffff"
+                    class="form-control form-control-color w-100">
+
+                <button name="action" value="set_color"
+                        class="btn btn-info w-100 mt-2">
+                    Apply Color
+                </button>
+            </form>
+
+            <!-- Zones -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Lighting Zone</label>
+
+                <select name="zone" class="form-select">
+                    <option value="all">All Lights</option>
+                    <option value="front">Front</option>
+                    <option value="rear">Rear</option>
+                    <option value="dashboard">Dashboard</option>
+                    <option value="ambient">Ambient Strip</option>
+                    <option value="footwell">Footwell</option>
+                </select>
+
+                <button name="action" value="set_zone"
+                        class="btn btn-dark w-100 mt-2">
+                    Apply Zone
+                </button>
+            </form>
+
+            <!-- Effects -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+
+                    <button name="action" value="blink"
+                            class="btn btn-warning">
+                        Blink
+                    </button>
+
+                    <button name="action" value="fade"
+                            class="btn btn-secondary">
+                         Fade
+                    </button>
+
+                    <button name="action" value="strobe"
+                            class="btn btn-danger">
+                         Strobe
+                    </button>
+
+                    <button name="action" value="rainbow"
+                            class="btn btn-primary">
+                        Rainbow Mode
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Auto Features -->
+            <form method="POST" class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                        type="checkbox"
+                        name="auto_lights"
+                        id="autoLights">
+
+                    <label class="form-check-label" for="autoLights">
+                        Automatic Lights
+                    </label>
+                </div>
+
+                <button name="action" value="save_auto"
+                        class="btn btn-success w-100 mt-2">
+                    Save Auto Settings
+                </button>
+            </form>
+
+            <!-- Status -->
+            <div class="alert alert-light mt-3">
+                <strong>Status:</strong><br>
+                State: ON<br>
+                Brightness: 75%<br>
+                Mode: Ambient<br>
+                Color: White
+            </div>
         </div>
         {% endif %}
 
         <!-- DOOR -->
         {% if item.ecu_type.name == "DOOR" %}
         <div class="card p-3 mt-3">
-            <h5>🚪 Door Controls</h5>
+            <h5>Smart Door Controls</h5>
 
-            <form method="POST">
-                <button name="action" value="lock"
-                        class="btn btn-danger w-100 mb-2">
-                    Lock Door
+            <!-- Lock / Unlock -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+
+                    <button name="action" value="lock"
+                            class="btn btn-danger">
+                        Lock Door
+                    </button>
+
+                    <button name="action" value="unlock"
+                            class="btn btn-success">
+                        Unlock Door
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Doorbell -->
+            <form method="POST" class="mb-3">
+
+                <button name="action" value="ring_doorbell"
+                        class="btn btn-primary w-100">
+                    Ring Doorbell
                 </button>
 
-                <button name="action" value="unlock"
-                        class="btn btn-success w-100">
-                    Unlock Door
+            </form>
+
+            <!-- Smart Access -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Access Mode</label>
+
+                <select name="access_mode" class="form-select">
+                    <option value="normal">Normal</option>
+                    <option value="guest">Guest Access</option>
+                    <option value="delivery">Delivery Mode</option>
+                    <option value="vacation">Vacation Mode</option>
+                    <option value="night">Night Lockdown</option>
+                </select>
+
+                <button name="action" value="set_access_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Apply Access Mode
                 </button>
             </form>
+
+            <!-- PIN Entry -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Temporary PIN</label>
+
+                <input type="password"
+                    name="door_pin"
+                    maxlength="6"
+                    class="form-control"
+                    placeholder="Enter PIN">
+
+                <button name="action" value="set_pin"
+                        class="btn btn-dark w-100 mt-2">
+                    Save PIN
+                </button>
+            </form>
+
+            <!-- Auto Lock -->
+            <form method="POST" class="mb-3">
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                        type="checkbox"
+                        name="auto_lock"
+                        id="autoLock">
+
+                    <label class="form-check-label" for="autoLock">
+                        Auto Lock Enabled
+                    </label>
+                </div>
+
+                <button name="action" value="save_auto_lock"
+                        class="btn btn-info w-100 mt-2">
+                    Save Auto Lock
+                </button>
+            </form>
+
+            <!-- Lighting -->
+            <form method="POST" class="mb-3">
+
+                <button name="action" value="toggle_porch_light"
+                        class="btn btn-outline-secondary w-100">
+                    Toggle Porch Light
+                </button>
+
+            </form>
+
+            <!-- Alarm -->
+            <form method="POST" class="mb-3">
+
+                <div class="d-grid gap-2">
+
+                    <button name="action" value="arm_alarm"
+                            class="btn btn-danger">
+                        Arm Alarm
+                    </button>
+
+                    <button name="action" value="disarm_alarm"
+                            class="btn btn-success">
+                        Disarm Alarm
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Status -->
+            <div class="alert alert-light mt-3">
+                <strong>Status:</strong><br>
+                Door: Locked<br>
+                Last Opened: 18:42<br>
+                Auto Lock: Enabled<br>
+                Camera: Online<br>
+                Alarm: Armed
+            </div>
         </div>
         {% endif %}
 
         <!-- HEATING -->
         {% if item.ecu_type.name == "HEATING" %}
         <div class="card p-3 mt-3">
-            <h5>🔥 Heating Controls</h5>
+            <h5>Heating Controls</h5>
 
-            <form method="POST">
-                <label class="form-label">Temperature</label>
-                <input type="range" name="temperature" min="15" max="30" step="0.5" class="form-range">
+            <!-- Power -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+
+                    <button name="action" value="heating_on"
+                            class="btn btn-success">
+                        Turn Heating On
+                    </button>
+
+                    <button name="action" value="heating_off"
+                            class="btn btn-danger">
+                        Turn Heating Off
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Temperature -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">
+                    Temperature:
+                    <span id="tempValue">22</span>°C
+                </label>
+
+                <input type="range"
+                    name="temperature"
+                    min="15"
+                    max="30"
+                    step="0.5"
+                    value="22"
+                    class="form-range"
+                    oninput="tempValue.innerText=this.value">
 
                 <button name="action" value="set_temp"
                         class="btn btn-primary w-100 mt-2">
                     Set Temperature
                 </button>
             </form>
+
+            <!-- Heating Mode -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Heating Mode</label>
+
+                <select name="heating_mode" class="form-select">
+                    <option value="comfort">Comfort</option>
+                    <option value="eco">Eco</option>
+                    <option value="night">Night</option>
+                    <option value="away">Away</option>
+                    <option value="boost">Boost</option>
+                </select>
+
+                <button name="action" value="set_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Apply Mode
+                </button>
+            </form>
+
+            <!-- Fan Speed -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">
+                    Fan Speed:
+                    <span id="fanValue">2</span>
+                </label>
+
+                <input type="range"
+                    name="fan_speed"
+                    min="0"
+                    max="5"
+                    value="2"
+                    class="form-range"
+                    oninput="fanValue.innerText=this.value">
+
+                <button name="action" value="set_fan"
+                        class="btn btn-info w-100 mt-2">
+                    Set Fan Speed
+                </button>
+            </form>
+
+            <!-- Schedule -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Heating Schedule</label>
+
+                <input type="time"
+                    name="start_time"
+                    class="form-control mb-2">
+
+                <input type="time"
+                    name="end_time"
+                    class="form-control">
+
+                <button name="action" value="save_schedule"
+                        class="btn btn-dark w-100 mt-2">
+                    Save Schedule
+                </button>
+            </form>
+
+            <!-- Zones -->
+            <form method="POST" class="mb-3">
+                <label class="form-label">Heating Zone</label>
+
+                <select name="zone" class="form-select">
+                    <option value="all">All Rooms</option>
+                    <option value="living_room">Living Room</option>
+                    <option value="bedroom">Bedroom</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="bathroom">Bathroom</option>
+                </select>
+
+                <button name="action" value="set_zone"
+                        class="btn btn-outline-primary w-100 mt-2">
+                    Apply Zone
+                </button>
+            </form>
+
+            <!-- Quick Actions -->
+            <form method="POST" class="mb-3">
+                <div class="d-grid gap-2">
+
+                    <button name="action" value="boost_mode"
+                            class="btn btn-warning">
+                        Boost Heating
+                    </button>
+
+                    <button name="action" value="eco_mode"
+                            class="btn btn-success">
+                        Eco Mode
+                    </button>
+
+                    <button name="action" value="freeze_protection"
+                            class="btn btn-outline-secondary">
+                        Freeze Protection
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Status -->
+            <div class="alert alert-light mt-3">
+                <strong>Status:</strong><br>
+                Heating: ON<br>
+                Current Temperature: 21°C<br>
+                Target Temperature: 22°C<br>
+                Mode: Comfort<br>
+                Fan Speed: 2
+            </div>
         </div>
         {% endif %}
+
 
         <!-- TEMP SENSOR -->
         {% if item.ecu_type.name == "TEMPERATURE_SENSOR" %}
         <div class="card p-3 mt-3">
-            <h5>🌡 Sensor</h5>
+            <h5>Sensor</h5>
             <p class="text-muted">
                 This device reports temperature via UDP.
             </p>

@@ -38,10 +38,10 @@ camera_processes = {}
 #=================================================================#
 class ECUType(enum.Enum):
     GENERIC = "generic"
-    AC = "ac"
+    AC = "Artifical Cooling"
     LIGHTS = "lights"
-    HEATING = "engine"
-    DOOR = "doors"
+    HEATING = "Heating System"
+    DOOR = "Door Control"
     TEMPERATURE_SENSOR = "sensor"
     IP_CAMERA = "ip_camera"
 
