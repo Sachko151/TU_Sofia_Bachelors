@@ -247,22 +247,32 @@
             <h5> Light Controls</h5>
 
             <!-- Main Power -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                action="{{ url_for('device_action', id=item.id) }}"
+                class="mb-3">
+
                 <div class="d-grid gap-2">
-                    <button name="action" value="lights_on"
+
+                    <button name="action"
+                            value="lights_on"
                             class="btn btn-success">
                         Turn ON
                     </button>
 
-                    <button name="action" value="lights_off"
+                    <button name="action"
+                            value="lights_off"
                             class="btn btn-danger">
                         Turn OFF
                     </button>
+
                 </div>
             </form>
 
             <!-- Brightness -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                action="{{ url_for('device_action', id=item.id) }}"
+                class="mb-3">
+
                 <label class="form-label">
                     Brightness:
                     <span id="brightnessValue">50</span>%
@@ -276,26 +286,31 @@
                     class="form-range"
                     oninput="brightnessValue.innerText=this.value">
 
-                <button name="action" value="set_brightness"
+                <button name="action"
+                        value="set_brightness"
                         class="btn btn-primary w-100 mt-2">
                     Apply Brightness
                 </button>
             </form>
 
             <!-- Light Mode -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                action="{{ url_for('device_action', id=item.id) }}"
+                class="mb-3">
+
                 <label class="form-label">Lighting Mode</label>
 
                 <select name="light_mode" class="form-select">
-                    <option value="normal"> Normal</option>
-                    <option value="night"> Night</option>
-                    <option value="reading"> Reading</option>
-                    <option value="ambient"> Ambient</option>
-                    <option value="party"> Party</option>
-                    <option value="emergency"> Emergency</option>
+                    <option value="normal">Normal</option>
+                    <option value="night">Night</option>
+                    <option value="reading">Reading</option>
+                    <option value="ambient">Ambient</option>
+                    <option value="party">Party</option>
+                    <option value="emergency">Emergency</option>
                 </select>
 
-                <button name="action" value="set_mode"
+                <button name="action"
+                        value="set_mode"
                         class="btn btn-secondary w-100 mt-2">
                     Set Mode
                 </button>

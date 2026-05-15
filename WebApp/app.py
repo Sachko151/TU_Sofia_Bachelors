@@ -162,6 +162,60 @@ def delete(id):
     return redirect(url_for("index"))
 
 #=================================================================#
+#                     DEVICE ACTION ROUTE                         #
+#=================================================================#
+@app.route("/device/<int:id>/action", methods=["POST"])
+def device_action(id):
+
+    item = Item.query.get_or_404(id)
+
+    action = request.form.get("action")
+
+    if not action:
+        return jsonify({"error": "Missing action"}), 400
+
+    if not item.ip:
+        return jsonify({"error": "Device has no IP"}), 400
+
+    COMMANDS = {
+        "ping": "-e",
+        "scan": "-s",
+        "reset": "-r",
+        "toggle": "-t",
+        "door_open": "-do",
+        "door_close": "-dc",
+        "fan_up": "-fu",
+        "fan_down": "-fd",
+        "lights_on": "-lon",
+        "lights_off": "-loff",
+    }
+
+    if action not in COMMANDS:
+        return jsonify({"error": f"Invalid action {action}"}), 400
+
+    cmd = [
+        "../OrangePI_SoC_Code/udp_tx",
+        COMMANDS[action],
+        item.ip
+    ]
+
+    try:
+        subprocess.run(cmd, timeout=2)
+
+        return jsonify({
+            "success": True,
+            "device": item.name,
+            "action": action
+        })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "error": "Command timeout"
+        }), 504
+
+
+#=================================================================#
 #                       RESET ROUTE?                              #
 #=================================================================#
 @app.route("/request_reset/<ip>")
