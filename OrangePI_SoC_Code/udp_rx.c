@@ -49,6 +49,7 @@ static int setup_udp_socket(uint16_t port)
 {
     int sock;
     struct sockaddr_in addr;
+    int opt = 1;
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -61,6 +62,12 @@ static int setup_udp_socket(uint16_t port)
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
 
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt");
+        close(sock);
+        return -1;
+    }
+    
     if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind failed");
         close(sock);

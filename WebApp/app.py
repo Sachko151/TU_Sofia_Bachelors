@@ -170,43 +170,93 @@ def device_action(id):
     item = Item.query.get_or_404(id)
 
     action = request.form.get("action")
+    second_action = None
 
     if not action:
         return jsonify({"error": "Missing action"}), 400
 
     if not item.ip:
         return jsonify({"error": "Device has no IP"}), 400
+    
+    if action == "set_brightness":
+        second_action = request.form.get("brightness")
+        print(f"{action}:{second_action}")
+    elif action == "set_temp":
+        second_action = request.form.get("temperature")
+        print(f"{action}:{second_action}")
+    elif action == "set_fan":
+        second_action = request.form.get("fan_speed")
+        print(f"{action}:{second_action}")
+    elif action == "set_mode":
+        second_action = request.form.get("ac_mode")
+        print(f"{action}:{second_action}")
+    elif action == "set_swing":
+        second_action = request.form.get("swing_mode")
+        print(f"{action}:{second_action}")
+    elif action == "set_lights_mode":
+        second_action = request.form.get("light_mode")
+        print(f"{action}:{second_action}")
+    elif action == "set_heating_temp":
+        second_action = request.form.get("temperature")
+        print(f"{action}:{second_action}")
+    elif action == "set_heating_mode":
+        second_action = request.form.get("heating_mode")
+        print(f"{action}:{second_action}")
+    else:
+        pass
 
     COMMANDS = {
-        "ping": "-e",
-        "scan": "-s",
-        "reset": "-r",
-        "toggle": "-t",
-        "door_open": "-do",
-        "door_close": "-dc",
-        "fan_up": "-fu",
-        "fan_down": "-fd",
+        ###FAN#####
+        "ac_on": "-acon",
+        "ac_off": "-acoff",
+        "set_fan": "-sfan",
+        "set_temp": "-stemp",
+        "set_fan": "-sfan",
+        "set_mode": "-smode",
+        "set_swing": "-swing",
+        "turbo_mode": "-turbo",
+        "eco_mode": "-eco",
+        "sleep_mode": "-sleep",
+        ###LIGHTS#####
         "lights_on": "-lon",
         "lights_off": "-loff",
+        "set_brightness": "-loff",
+        "set_lights_mode": "-slmode",
+        ###HEATING#####
+        "heating_on": "-hon",
+        "heating_off": "-hoff",
+        "set_heating_temp": "-shtemp",
+        "set_heating_mode": "-shmode",
+        ###Smart Door Control#####
+        "lock": "-dlock",
+        "unlock": "-dunlock",
+        "ring_doorbell": "-dbell",
+
     }
 
     if action not in COMMANDS:
         return jsonify({"error": f"Invalid action {action}"}), 400
 
-    cmd = [
-        "../OrangePI_SoC_Code/udp_tx",
-        COMMANDS[action],
-        item.ip
-    ]
+    print(f"Executing command: {action}")
+
+    if second_action != None:
+        cmd = [
+            "../OrangePI_SoC_Code/udp_tx",
+            COMMANDS[action],
+            second_action,
+            item.ip
+        ]
+    else:
+        cmd = [
+            "../OrangePI_SoC_Code/udp_tx",
+            COMMANDS[action],
+            item.ip
+        ]
 
     try:
         subprocess.run(cmd, timeout=2)
 
-        return jsonify({
-            "success": True,
-            "device": item.name,
-            "action": action
-        })
+        return redirect(url_for("device_detail", id=id))
 
     except subprocess.TimeoutExpired:
         return jsonify({
@@ -325,7 +375,7 @@ def scan_worker():
                 ["../OrangePI_SoC_Code/udp_rx", "-s"],
                 capture_output=True,
                 text=True,
-                timeout=2
+                timeout=0.5
             )
 
             for line in result.stdout.splitlines():

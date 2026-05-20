@@ -13,10 +13,14 @@
 =================================================================*/
 #define OTA_CHECK_URL "http://192.168.0.102:5000/ota"
 #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
-#define MAIN_SOC_IP_3rd_OCTET 0
-#define MAIN_SOC_IP_4th_OCTET 102
+#define MAIN_SOC_IP_3rd_OCTET 1
+#define MAIN_SOC_IP_4th_OCTET 14
 #define UDP_COM_PORT 151
 #define OTA_ENABLED 0u
+
+#ifdef DOOR_ECU
+static void close_door();
+#endif
 
 typedef enum
 {
@@ -286,7 +290,7 @@ static void echo()
 {
   Serial.println("Echo State!");
   uint8_t echo_data[2] = {0xFF, 0xFF};
-  for (uint8_t i = 0; i < 25; i++)
+  for (uint8_t i = 0; i < 50; i++)
   {
     //??? Perhaps handshake
     delay(50);
@@ -323,3 +327,14 @@ static void heartbeat()
   udp_tx(echo_data, sizeof(echo_data));
   esp_restart();
 }
+
+
+#ifdef DOOR_ECU
+static void close_door()
+{
+  Serial.println("Close Door!");
+  uint8_t echo_data[2] = {0x02, 0x00};
+  Serial.println("Sending UDP packet to main SoC");
+  udp_tx(echo_data, sizeof(echo_data));
+}
+#endif
