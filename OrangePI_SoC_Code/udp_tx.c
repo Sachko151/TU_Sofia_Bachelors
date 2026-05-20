@@ -77,6 +77,7 @@ static void process_udp_payload(int argc, char **argv, uint8_t *buff, uint64_t b
             break;
         
         default:
+            fprintf(stderr, "Undefined TX option!!!\n");
             break;
         }
     }

@@ -78,7 +78,6 @@
 
                 {% if item.rtsp_url %}
 
-                <!-- LIVE IMAGE STREAM -->
                 <div class="text-center">
 
                     <img
@@ -125,76 +124,96 @@
             <h5>🌬 A/C Controls</h5>
 
             <!-- Power -->
-            <form method="POST" class="mb-3">
-                <button name="action" value="ac_on"
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <button name="action"
+                        value="ac_on"
                         class="btn btn-success w-100 mb-2">
                     Turn ON
                 </button>
 
-                <button name="action" value="ac_off"
+                <button name="action"
+                        value="ac_off"
                         class="btn btn-danger w-100">
                     Turn OFF
                 </button>
             </form>
 
             <!-- Temperature -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
                 <label class="form-label">
                     Temperature: <span id="tempValue">22</span>°C
                 </label>
 
                 <input type="range"
-                    name="temperature"
-                    min="16"
-                    max="30"
-                    value="22"
-                    class="form-range"
-                    oninput="tempValue.innerText=this.value">
+                       name="temperature"
+                       min="16"
+                       max="30"
+                       value="22"
+                       class="form-range"
+                       oninput="tempValue.innerText=this.value">
 
-                <button name="action" value="set_temp"
+                <button name="action"
+                        value="set_temp"
                         class="btn btn-primary w-100 mt-2">
                     Set Temperature
                 </button>
             </form>
 
             <!-- Fan Speed -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
                 <label class="form-label">
                     Fan Speed
                 </label>
 
                 <input type="range"
-                    name="fan_speed"
-                    min="0"
-                    max="5"
-                    class="form-range">
+                       name="fan_speed"
+                       min="0"
+                       max="5"
+                       class="form-range">
 
-                <button name="action" value="set_fan"
+                <button name="action"
+                        value="set_fan"
                         class="btn btn-primary w-100 mt-2">
                     Set Fan Speed
                 </button>
             </form>
 
             <!-- Mode Selection -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
                 <label class="form-label">Mode</label>
 
                 <select name="ac_mode" class="form-select">
-                    <option value="cool">❄ Cool</option>
-                    <option value="heat">🔥 Heat</option>
-                    <option value="dry">💧 Dry</option>
-                    <option value="fan">🌀 Fan Only</option>
-                    <option value="auto">🤖 Auto</option>
+                    <option value="cool">Cool</option>
+                    <option value="heat">Heat</option>
+                    <option value="dry">Dry</option>
+                    <option value="fan">Fan Only</option>
+                    <option value="auto">Auto</option>
                 </select>
 
-                <button name="action" value="set_mode"
+                <button name="action"
+                        value="set_mode"
                         class="btn btn-secondary w-100 mt-2">
                     Set Mode
                 </button>
             </form>
 
             <!-- Swing -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
                 <label class="form-label">Air Swing</label>
 
                 <select name="swing_mode" class="form-select">
@@ -204,40 +223,41 @@
                     <option value="both">Both</option>
                 </select>
 
-                <button name="action" value="set_swing"
+                <button name="action"
+                        value="set_swing"
                         class="btn btn-info w-100 mt-2">
                     Set Swing
                 </button>
             </form>
 
             <!-- Turbo / Eco -->
-            <form method="POST" class="mb-3">
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
                 <div class="d-grid gap-2">
-                    <button name="action" value="turbo_mode"
+
+                    <button name="action"
+                            value="turbo_mode"
                             class="btn btn-warning">
                         ⚡ Turbo Mode
                     </button>
 
-                    <button name="action" value="eco_mode"
+                    <button name="action"
+                            value="eco_mode"
                             class="btn btn-success">
-                        🌱 Eco Mode
+                        Eco Mode
                     </button>
 
-                    <button name="action" value="sleep_mode"
+                    <button name="action"
+                            value="sleep_mode"
                             class="btn btn-dark">
-                        😴 Sleep Mode
+                        Sleep Mode
                     </button>
+
                 </div>
             </form>
 
-            <!-- Status Display -->
-            <div class="alert alert-light mt-3">
-                <strong>Status:</strong><br>
-                Power: ON<br>
-                Temp: 22°C<br>
-                Mode: Cool<br>
-                Fan: 3
-            </div>
         </div>
         {% endif %}
 
@@ -246,34 +266,119 @@
         <div class="card p-3 mt-3">
             <h5>💡 Light Controls</h5>
 
-            <form method="POST">
-                <label class="form-label">Brightness</label>
-                <input type="range" name="brightness" min="0" max="100" class="form-range">
+            <!-- Main Power -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
 
-                <button name="action" value="set_brightness"
+                <div class="d-grid gap-2">
+
+                    <button name="action"
+                            value="lights_on"
+                            class="btn btn-success">
+                        Turn ON
+                    </button>
+
+                    <button name="action"
+                            value="lights_off"
+                            class="btn btn-danger">
+                        Turn OFF
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Brightness -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <label class="form-label">
+                    Brightness:
+                    <span id="brightnessValue">50</span>%
+                </label>
+
+                <input type="range"
+                       name="brightness"
+                       min="0"
+                       max="100"
+                       value="50"
+                       class="form-range"
+                       oninput="brightnessValue.innerText=this.value">
+
+                <button name="action"
+                        value="set_brightness"
                         class="btn btn-primary w-100 mt-2">
                     Apply Brightness
                 </button>
             </form>
+
+            <!-- Light Mode -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <label class="form-label">Lighting Mode</label>
+
+                <select name="light_mode" class="form-select">
+                    <option value="normal">Normal</option>
+                    <option value="night">Night</option>
+                    <option value="reading">Reading</option>
+                    <option value="ambient">Ambient</option>
+                    <option value="party">Party</option>
+                    <option value="emergency">Emergency</option>
+                </select>
+
+                <button name="action"
+                        value="set_lights_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Set Mode
+                </button>
+            </form>
+
         </div>
         {% endif %}
 
         <!-- DOOR -->
         {% if item.ecu_type.name == "DOOR" %}
         <div class="card p-3 mt-3">
-            <h5>🚪 Door Controls</h5>
+            <h5>🚪 Smart Door Controls</h5>
 
-            <form method="POST">
-                <button name="action" value="lock"
-                        class="btn btn-danger w-100 mb-2">
-                    Lock Door
-                </button>
+            <!-- Lock / Unlock -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
 
-                <button name="action" value="unlock"
-                        class="btn btn-success w-100">
-                    Unlock Door
-                </button>
+                <div class="d-grid gap-2">
+
+                    <button name="action"
+                            value="lock"
+                            class="btn btn-danger">
+                        Lock Door
+                    </button>
+
+                    <button name="action"
+                            value="unlock"
+                            class="btn btn-success">
+                        Unlock Door
+                    </button>
+
+                </div>
             </form>
+
+            <!-- Doorbell -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <button name="action"
+                        value="ring_doorbell"
+                        class="btn btn-primary w-100">
+                    Ring Doorbell
+                </button>
+
+            </form>
+
         </div>
         {% endif %}
 
@@ -282,15 +387,76 @@
         <div class="card p-3 mt-3">
             <h5>🔥 Heating Controls</h5>
 
-            <form method="POST">
-                <label class="form-label">Temperature</label>
-                <input type="range" name="temperature" min="15" max="30" step="0.5" class="form-range">
+            <!-- Power -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
 
-                <button name="action" value="set_temp"
+                <div class="d-grid gap-2">
+
+                    <button name="action"
+                            value="heating_on"
+                            class="btn btn-success">
+                        Turn Heating On
+                    </button>
+
+                    <button name="action"
+                            value="heating_off"
+                            class="btn btn-danger">
+                        Turn Heating Off
+                    </button>
+
+                </div>
+            </form>
+
+            <!-- Temperature -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <label class="form-label">
+                    Temperature:
+                    <span id="heatTempValue">22</span>°C
+                </label>
+
+                <input type="range"
+                       name="temperature"
+                       min="15"
+                       max="30"
+                       step="0.5"
+                       value="22"
+                       class="form-range"
+                       oninput="heatTempValue.innerText=this.value">
+
+                <button name="action"
+                        value="set_heating_temp"
                         class="btn btn-primary w-100 mt-2">
                     Set Temperature
                 </button>
             </form>
+
+            <!-- Heating Mode -->
+            <form method="POST"
+                  action="{{ url_for('device_action', id=item.id) }}"
+                  class="mb-3">
+
+                <label class="form-label">Heating Mode</label>
+
+                <select name="heating_mode" class="form-select">
+                    <option value="comfort">Comfort</option>
+                    <option value="eco">Eco</option>
+                    <option value="night">Night</option>
+                    <option value="away">Away</option>
+                    <option value="boost">Boost</option>
+                </select>
+
+                <button name="action"
+                        value="set_heating_mode"
+                        class="btn btn-secondary w-100 mt-2">
+                    Apply Mode
+                </button>
+            </form>
+
         </div>
         {% endif %}
 
@@ -307,10 +473,13 @@
         <hr>
 
         <!-- DELETE -->
-        <form method="POST" action="{{ url_for('delete', id=item.id) }}">
+        <form method="POST"
+              action="{{ url_for('delete', id=item.id) }}">
+
             <button class="btn btn-outline-danger">
                 Delete Device
             </button>
+
         </form>
 
         <br>
@@ -322,22 +491,21 @@
     </div>
 </div>
 
-<!-- ========================================================== -->
 <!-- AUTO REFRESH SCRIPT -->
-<!-- ========================================================== -->
-
 {% if item.ecu_type.name == "IP_CAMERA" and item.rtsp_url %}
 
 <script>
 
 function refreshFrame() {
     const img = document.getElementById("cameraFrame");
+
     if (!img) return;
 
-    img.src = "/static/frames/{{ item.id }}/frame_latest.jpg?t=" + new Date().getTime();
+    img.src =
+        "/static/frames/{{ item.id }}/frame_latest.jpg?t=" +
+        new Date().getTime();
 }
 
-// refresh every 1 second
 setInterval(refreshFrame, 500);
 
 </script>
