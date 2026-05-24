@@ -207,30 +207,30 @@ def device_action(id):
 
     COMMANDS = {
         ###FAN#####
-        "ac_on": "-acon",
-        "ac_off": "-acoff",
+        "ac_on": "-q",
+        "ac_off": "-w",
         "set_fan": "-sfan",
         "set_temp": "-stemp",
         "set_fan": "-sfan",
         "set_mode": "-smode",
         "set_swing": "-swing",
-        "turbo_mode": "-turbo",
-        "eco_mode": "-eco",
-        "sleep_mode": "-sleep",
+        "turbo_mode": "-t",
+        "eco_mode": "-y",
+        "sleep_mode": "-o",
         ###LIGHTS#####
-        "lights_on": "-lon",
-        "lights_off": "-loff",
-        "set_brightness": "-loff",
+        "lights_on": "-u",
+        "lights_off": "-i",
+        "set_brightness": "-lbright",
         "set_lights_mode": "-slmode",
         ###HEATING#####
-        "heating_on": "-hon",
-        "heating_off": "-hoff",
+        "heating_on": "-h",
+        "heating_off": "-a",
         "set_heating_temp": "-shtemp",
         "set_heating_mode": "-shmode",
         ###Smart Door Control#####
-        "lock": "-dlock",
-        "unlock": "-dunlock",
-        "ring_doorbell": "-dbell",
+        "lock": "-d",
+        "unlock": "-f",
+        "ring_doorbell": "-g",
 
     }
 

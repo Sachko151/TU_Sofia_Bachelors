@@ -6,6 +6,8 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
 /*================================================================
                         DEFINES
@@ -17,6 +19,26 @@ typedef enum
   ECHO,
   RESET,
   SCAN,
+  AC_ON,
+  AC_OFF,
+  SET_FAN,
+  SET_TEMP,
+  SET_MODE,
+  SET_SWING,
+  TURBO_MODE,
+  ECO_MODE,
+  SLEEP_MODE,
+  LIGTHS_ON,
+  LIGHTS_OFF,
+  SET_BRIGHTNESS,
+  SET_LIGHTS_MODE,
+  HEATING_ON,
+  HEATING_OFF,
+  SET_HEATING_TEMP,
+  SET_HEATING_MODE,
+  DOOR_LOCK,
+  DOOR_UNLOCK,
+  RING_DOORBELL,
   COUNT
 } commands_t;
 
@@ -61,25 +83,134 @@ static void process_udp_payload(int argc, char **argv, uint8_t *buff, uint64_t b
 {
     if(argc > 1)
     {
-        switch (argv[1][1])
+        //cases where e.g. brightess params should be passed too!
+        if(argc <= 3)
         {
-        case 'e':
-            buff[0] = ECHO;
-            send_udp_payload(buff, bufflen, argv[2]);
-            break;
-        case 'r':
-            buff[0] = RESET;
-            send_udp_payload(buff, bufflen, argv[2]);
-            break;
-        case 's':
-            buff[0] = SCAN;
-            send_udp_payload(buff, bufflen, argv[2]);
-            break;
-        
-        default:
-            fprintf(stderr, "Undefined TX option!!!\n");
-            break;
+            switch (argv[1][1])
+            {
+                case 'e':
+                    buff[0] = ECHO;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'r':
+                    buff[0] = RESET;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 's':
+                    buff[0] = SCAN;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'q':
+                    buff[0] = AC_ON;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'w':
+                    buff[0] = AC_OFF;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 't':
+                    buff[0] = TURBO_MODE;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'y':
+                    buff[0] = ECO_MODE;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'o':
+                    buff[0] = SLEEP_MODE;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'u':
+                    buff[0] = LIGTHS_ON;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'i':
+                    buff[0] = LIGHTS_OFF;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'h':
+                    buff[0] = HEATING_ON;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'a':
+                    buff[0] = HEATING_OFF;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'd':
+                    buff[0] = DOOR_LOCK;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'f':
+                    buff[0] = DOOR_UNLOCK;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                case 'g':
+                    buff[0] = RING_DOORBELL;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
+                default:
+                    assert("Undefined TX option!!!\n");
+                    break;
+            }
         }
+        else
+        {
+            size_t second_argv_len = 0u;
+            second_argv_len = strlen(argv[2]);
+            
+
+            if(0u == strncmp("-sfan", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_FAN;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else if(0u == strncmp("-stemp", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_TEMP;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else if(0u == strncmp("-lbright", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_BRIGHTNESS;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else if(0u == strncmp("-slmode", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_LIGHTS_MODE;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else if(0u == strncmp("-shtemp", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_HEATING_TEMP;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else if(0u == strncmp("-shmode", argv[1], second_argv_len))
+            {
+                int arg = atoi(argv[2]);
+                buff[0] = SET_HEATING_MODE;
+                buff[1] = argv[2];
+                send_udp_payload(buff, bufflen, argv[3]);
+            }
+            else
+            {
+                assert("UNKNOWN PARAMS!\n");
+            }
+        }
+    }
+    else
+    {
+        assert("Wrong TX usage!\n");
+
     }
 }
 /*================================================================
@@ -91,7 +222,7 @@ static uint8_t setup_udp_socket(char **argv)
         sock = socket(AF_INET, SOCK_DGRAM, 0);
 
         if (sock < 0) {
-            fprintf(stderr, "Socket Error aborting");
+            assert("Socket Error aborting");
             return 1;
         }
     
