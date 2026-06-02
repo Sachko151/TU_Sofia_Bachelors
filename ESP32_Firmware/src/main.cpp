@@ -18,15 +18,13 @@
 #define UDP_COM_PORT 151
 #define OTA_ENABLED 0u
 
-#ifdef DOOR_ECU
-static void close_door();
-#endif
 
 typedef enum
 {
   ECHO,
   RESET,
   SCAN,
+  HEALTH_CHECK,
   AC_ON,
   AC_OFF,
   SET_FAN,
@@ -56,6 +54,7 @@ typedef enum
   reset_state,
   heartbeat_state,
   idle_state,
+  healthcheck_state,
   execute_action_state,
   count_state
 } state_t;
@@ -77,6 +76,7 @@ uint8_t heartbeat_counter = 0x0;
 
 typedef void (*command_func_t)(void);
 /* Function declarations */
+#ifdef AC_ECU
 void ac_on(void);
 void ac_off(void);
 void set_fan(void);
@@ -86,22 +86,31 @@ void set_swing(void);
 void turbo_mode(void);
 void eco_mode(void);
 void sleep_mode(void);
+#endif //AC_ECU
+#if LIGHTS_ECU
 void lights_on(void);
 void lights_off(void);
 void set_brightness(void);
 void set_lights_mode(void);
+#endif //LIGHTS_ECU
+#if HEATING_ECU
 void heating_on(void);
 void heating_off(void);
 void set_heating_temp(void);
 void set_heating_mode(void);
+#endif //HEATING_ECU
+#if DOOR_ECU
 void door_lock(void);
 void door_unlock(void);
 void ring_doorbell(void);
+#endif
 
 command_func_t const command_table[] = {
-  NULL,
-  NULL,
-  NULL,
+  NULL, /*Echo*/
+  NULL, /*Reset*/
+  NULL, /*heartbeat*/
+  NULL, /*health_check*/
+  #ifdef AC_ECU
   ac_on,
   ac_off,
   set_fan,
@@ -111,17 +120,24 @@ command_func_t const command_table[] = {
   turbo_mode,
   eco_mode,
   sleep_mode,
+  #endif //AC_ECU
+  #ifdef LIGHTS_ECU
   lights_on,
   lights_off,
   set_brightness,
   set_lights_mode,
+  #endif //LIGHTS_ECU
+  #ifdef HEATING_ECU
   heating_on,
   heating_off,
   set_heating_temp,
   set_heating_mode,
+  #endif //HEATING_ECU
+  #ifdef DOOR_ECU
   door_lock,
   door_unlock,
   ring_doorbell
+  #endif //DOOR_ECU
 };
 
 /*================================================================
@@ -137,6 +153,7 @@ static void echo();
 static void reset();
 static void idle();
 static void heartbeat();
+static void healthcheck();
 static void execute_action();
 void udp_tx(uint8_t *data, uint8_t len);
 void udp_rx();
@@ -179,6 +196,8 @@ void state_machine()
       break;
     case heartbeat_state:
       heartbeat();
+    case healthcheck_state:
+      healthcheck();
     case execute_action_state:
       execute_action();
       break;
@@ -426,11 +445,35 @@ static void heartbeat()
   esp_restart();
 }
 
+/*================================================================
+  Periodic Heart Beat, used to monitor whether any resets have happened.
+=================================================================*/
+static void healthcheck()
+{
+  Serial.println("HealthCheck State!");
+  uint8_t echo_data[1] = {0x0};
+  #ifdef AC_ECU
+    echo_data[0] = {0x1};
+  #endif
+  #ifdef LIGHTS_ECU
+    echo_data[0] = {0x2};
+  #endif
+  #ifdef HEATING_ECU
+    echo_data[0] = {0x3};
+  #endif
+  #ifdef DOOR_ECU
+    echo_data[0] = {0x4};
+  #endif
+  Serial.println("Sending UDP packet to main SoC");
+  udp_tx(echo_data, sizeof(echo_data));
+}
+
 static void execute_action()
 {
   command_table[current_exec_state]();
 }
 
+#ifdef AC_ECU
 void ac_on(void)
 {
     // TODO
@@ -475,7 +518,8 @@ void sleep_mode(void)
 {
     // TODO
 }
-
+#endif //AC_ECU
+#if LIGHTS_ECU
 void lights_on(void)
 {
     // TODO
@@ -495,7 +539,8 @@ void set_lights_mode(void)
 {
     // TODO
 }
-
+#endif
+#if HEATING_ECU
 void heating_on(void)
 {
     // TODO
@@ -515,7 +560,8 @@ void set_heating_mode(void)
 {
     // TODO
 }
-
+#endif
+#if DOOR_ECU
 void door_lock(void)
 {
     // TODO
@@ -523,20 +569,14 @@ void door_lock(void)
 
 void door_unlock(void)
 {
-    // TODO
+  Serial.println("Close Door!");
+  uint8_t echo_data[2] = {0x02, 0x00};
+  Serial.println("Sending UDP packet to main SoC");
+  udp_tx(echo_data, sizeof(echo_data));
 }
 
 void ring_doorbell(void)
 {
     // TODO
 }
-
-#ifdef DOOR_ECU
-static void close_door()
-{
-  Serial.println("Close Door!");
-  uint8_t echo_data[2] = {0x02, 0x00};
-  Serial.println("Sending UDP packet to main SoC");
-  udp_tx(echo_data, sizeof(echo_data));
-}
-#endif
+#endif //DOOR_ECU 

@@ -19,6 +19,7 @@ typedef enum
   ECHO,
   RESET,
   SCAN,
+  HEALTH_CHECK,
   AC_ON,
   AC_OFF,
   SET_FAN,
@@ -148,8 +149,12 @@ static void process_udp_payload(int argc, char **argv, uint8_t *buff, uint64_t b
                     buff[0] = RING_DOORBELL;
                     send_udp_payload(buff, bufflen, argv[2]);
                     break;
+                case 'v':
+                    buff[0] = HEALTH_CHECK;
+                    send_udp_payload(buff, bufflen, argv[2]);
+                    break;
                 default:
-                    assert("Undefined TX option!!!\n");
+                    printf("Undefined TX option!!!\n");
                     break;
             }
         }
@@ -203,7 +208,7 @@ static void process_udp_payload(int argc, char **argv, uint8_t *buff, uint64_t b
             }
             else
             {
-                assert("UNKNOWN PARAMS!\n");
+                printf("Undefined TX option!!!\n");
             }
         }
     }
