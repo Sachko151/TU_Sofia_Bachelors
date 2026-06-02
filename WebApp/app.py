@@ -206,31 +206,33 @@ def device_action(id):
         pass
 
     COMMANDS = {
+        ####UNIVERSAL######
+        "healthcheck": "-v",
         ###FAN#####
-        "ac_on": "-acon",
-        "ac_off": "-acoff",
+        "ac_on": "-q",
+        "ac_off": "-w",
         "set_fan": "-sfan",
         "set_temp": "-stemp",
         "set_fan": "-sfan",
         "set_mode": "-smode",
         "set_swing": "-swing",
-        "turbo_mode": "-turbo",
-        "eco_mode": "-eco",
-        "sleep_mode": "-sleep",
+        "turbo_mode": "-t",
+        "eco_mode": "-y",
+        "sleep_mode": "-o",
         ###LIGHTS#####
-        "lights_on": "-lon",
-        "lights_off": "-loff",
-        "set_brightness": "-loff",
+        "lights_on": "-u",
+        "lights_off": "-i",
+        "set_brightness": "-lbright",
         "set_lights_mode": "-slmode",
         ###HEATING#####
-        "heating_on": "-hon",
-        "heating_off": "-hoff",
+        "heating_on": "-h",
+        "heating_off": "-a",
         "set_heating_temp": "-shtemp",
         "set_heating_mode": "-shmode",
         ###Smart Door Control#####
-        "lock": "-dlock",
-        "unlock": "-dunlock",
-        "ring_doorbell": "-dbell",
+        "lock": "-d",
+        "unlock": "-f",
+        "ring_doorbell": "-g",
 
     }
 
@@ -239,30 +241,65 @@ def device_action(id):
 
     print(f"Executing command: {action}")
 
-    if second_action != None:
-        cmd = [
-            "../OrangePI_SoC_Code/udp_tx",
-            COMMANDS[action],
-            second_action,
-            item.ip
-        ]
+    if action == "healthcheck":
+        try:
+            # Send healthcheck request
+            subprocess.run(
+                [
+                    "../OrangePI_SoC_Code/udp_tx",
+                    COMMANDS[action],
+                    item.ip
+                ],
+                timeout=2,
+                check=True
+            )
+
+            # Wait for reply
+            result = subprocess.run(
+                ["../OrangePI_SoC_Code/udp_rx", "-s"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+
+            response = result.stdout.strip()
+
+            return jsonify({
+                "success": True,
+                "response": response
+            })
+
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                "success": False,
+                "error": "Healthcheck timeout"
+            }), 504
     else:
-        cmd = [
-            "../OrangePI_SoC_Code/udp_tx",
-            COMMANDS[action],
-            item.ip
-        ]
 
-    try:
-        subprocess.run(cmd, timeout=2)
+        if second_action != None:
+            cmd = [
+                "../OrangePI_SoC_Code/udp_tx",
+                COMMANDS[action],
+                second_action,
+                item.ip
+            ]
+        else:
+            cmd = [
+                "../OrangePI_SoC_Code/udp_tx",
+                COMMANDS[action],
+                item.ip
+            ]
 
-        return redirect(url_for("device_detail", id=id))
+        try:
+            subprocess.run(cmd, timeout=2)
 
-    except subprocess.TimeoutExpired:
-        return jsonify({
-            "success": False,
-            "error": "Command timeout"
-        }), 504
+            return redirect(url_for("device_detail", id=id))
+
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                "success": False,
+                "error": "Command timeout"
+            }), 504
 
 
 #=================================================================#
