@@ -14,9 +14,24 @@
 #define OTA_CHECK_URL "http://192.168.0.102:5000/ota"
 #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
 #define MAIN_SOC_IP_3rd_OCTET 0
-#define MAIN_SOC_IP_4th_OCTET 105
+#define MAIN_SOC_IP_4th_OCTET 107
 #define UDP_COM_PORT 151
 #define OTA_ENABLED 0u
+
+#if LIGHTS_ECU
+#define PIN_LIGHTS_RELAY      16
+#define PIN_LIGHTS_PWM        17
+#endif
+
+#if HEATING_ECU
+#define PIN_HEATER_RELAY      18
+#define PIN_HEATER_PWM        19
+#endif
+
+#if DOOR_ECU
+#define PIN_DOOR_LOCK         21
+#define PIN_DOOR_BUZZER       22
+#endif
 
 
 typedef enum
@@ -77,6 +92,36 @@ uint8_t heartbeat_counter = 0x0;
 typedef void (*command_func_t)(void);
 /* Function declarations */
 #ifdef AC_ECU
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+#include <ir_Mitsubishi.h>
+
+#define IR_LED_PIN 4
+
+IRMitsubishiAC ac(IR_LED_PIN);
+
+extern uint8_t g_cmd_data[32];
+extern uint8_t g_cmd_len;
+
+typedef struct
+{
+    bool power;
+    uint8_t temperature;
+    uint8_t fan;
+    uint8_t mode;
+    bool swing;
+} ac_state_t;
+
+ac_state_t g_ac_state =
+{
+    false,
+    24,
+    0,
+    4,
+    false
+};
+
+static void send_ac_state(void);
 void ac_on(void);
 void ac_off(void);
 void set_fan(void);
@@ -88,12 +133,16 @@ void eco_mode(void);
 void sleep_mode(void);
 #endif //AC_ECU
 #if LIGHTS_ECU
+ledcSetup(0, 5000, 8); // channel 0, 5kHz, 8-bit
+ledcAttachPin(PIN_LIGHTS_PWM, 0);
 void lights_on(void);
 void lights_off(void);
 void set_brightness(void);
 void set_lights_mode(void);
 #endif //LIGHTS_ECU
 #if HEATING_ECU
+ledcSetup(1, 2000, 8);
+ledcAttachPin(PIN_HEATER_PWM, 1);
 void heating_on(void);
 void heating_off(void);
 void set_heating_temp(void);
@@ -169,6 +218,29 @@ void setup() {
   #if  OTA_ENABLED == 1
     handleOTAUpdate();
   #endif
+  #if AC_ECU
+    ac.begin();
+  #endif //AC_ECU
+  #if LIGHTS_ECU
+pinMode(PIN_LIGHTS_RELAY, OUTPUT);
+pinMode(PIN_LIGHTS_PWM, OUTPUT);
+digitalWrite(PIN_LIGHTS_RELAY, LOW);
+digitalWrite(PIN_LIGHTS_PWM, LOW);
+#endif
+
+#if HEATING_ECU
+pinMode(PIN_HEATER_RELAY, OUTPUT);
+pinMode(PIN_HEATER_PWM, OUTPUT);
+digitalWrite(PIN_HEATER_RELAY, LOW);
+digitalWrite(PIN_HEATER_PWM, LOW);
+#endif
+
+#if DOOR_ECU
+pinMode(PIN_DOOR_LOCK, OUTPUT);
+pinMode(PIN_DOOR_BUZZER, OUTPUT);
+digitalWrite(PIN_DOOR_LOCK, LOW);
+digitalWrite(PIN_DOOR_BUZZER, LOW);
+#endif
   udp.begin(UDP_COM_PORT);
   
 }
@@ -196,8 +268,10 @@ void state_machine()
       break;
     case heartbeat_state:
       heartbeat();
+      break;
     case healthcheck_state:
       healthcheck();
+      break;
     case execute_action_state:
       execute_action();
       break;
@@ -474,109 +548,389 @@ static void execute_action()
 }
 
 #ifdef AC_ECU
+
+static void send_ac_state(void)
+{
+    ac.setPower(g_ac_state.power);
+
+    ac.setTemp(g_ac_state.temperature);
+
+    switch(g_ac_state.mode)
+    {
+        case 0:
+            ac.setMode(kMitsubishiAcCool);
+            break;
+
+        case 1:
+            ac.setMode(kMitsubishiAcHeat);
+            break;
+
+        case 2:
+            ac.setMode(kMitsubishiAcDry);
+            break;
+
+        case 3:
+            ac.setMode(kMitsubishiAcFan);
+            break;
+
+        default:
+            ac.setMode(kMitsubishiAcAuto);
+            break;
+    }
+
+    switch(g_ac_state.fan)
+    {
+        case 0:
+            ac.setFan(kMitsubishiAcFanAuto);
+            break;
+
+        case 1:
+            ac.setFan(kMitsubishiAcFanLow);
+            break;
+
+        case 2:
+            ac.setFan(kMitsubishiAcFanMed);
+            break;
+
+        case 3:
+            ac.setFan(kMitsubishiAcFanHigh);
+            break;
+
+        default:
+            ac.setFan(kMitsubishiAcFanAuto);
+            break;
+    }
+
+    if(g_ac_state.swing)
+    {
+        ac.setVane(kMitsubishiAcVaneAutoMove);
+    }
+    else
+    {
+        ac.setVane(kMitsubishiAcVaneAuto);
+    }
+
+    ac.send();
+}
+
 void ac_on(void)
 {
-    // TODO
+    Serial.println("AC ON");
+
+    g_ac_state.power = true;
+
+    send_ac_state();
+
+    current_state = idle_state;
 }
 
 void ac_off(void)
 {
-    // TODO
+    Serial.println("AC OFF");
+
+    g_ac_state.power = false;
+
+    send_ac_state();
+
+    current_state = idle_state;
 }
 
+// Byte 0 = SET_FAN
+// Byte 1 = Fan speed
+
+// 0 = Auto
+// 1 = Low
+// 2 = Medium
+// 3 = High
 void set_fan(void)
 {
-    // TODO
+    Serial.println("SET FAN");
+
+    if(g_cmd_len >= 2)
+    {
+        g_ac_state.fan = g_cmd_data[1];
+
+        if(g_ac_state.fan > 3)
+        {
+            g_ac_state.fan = 0;
+        }
+
+        send_ac_state();
+    }
+
+    current_state = idle_state;
 }
 
+// Byte 0 = SET_TEMP
+// Byte 1 = Temperature (16-31)
 void set_temp(void)
 {
-    // TODO
+    Serial.println("SET TEMP");
+
+    if(g_cmd_len >= 2)
+    {
+        uint8_t temp = g_cmd_data[1];
+
+        if(temp < 16)
+        {
+            temp = 16;
+        }
+
+        if(temp > 31)
+        {
+            temp = 31;
+        }
+
+        g_ac_state.temperature = temp;
+
+        send_ac_state();
+    }
+
+    current_state = idle_state;
 }
 
+// Byte 0 = SET_MODE
+// Byte 1 = Mode
+
+// 0 = Cool
+// 1 = Heat
+// 2 = Dry
+// 3 = Fan
+// 4 = Auto
 void set_mode(void)
 {
-    // TODO
+  Serial.println("SET MODE");
+
+    if(g_cmd_len >= 2)
+    {
+        g_ac_state.mode = g_cmd_data[1];
+
+        if(g_ac_state.mode > 4)
+        {
+            g_ac_state.mode = 4;
+        }
+
+        send_ac_state();
+    }
+
+    current_state = idle_state;
 }
 
+// Byte 0 = SET_SWING
+// Byte 1 = 0 or 1
 void set_swing(void)
 {
-    // TODO
+    Serial.println("SET SWING");
+
+    if(g_cmd_len >= 2)
+    {
+        g_ac_state.swing = (g_cmd_data[1] != 0);
+
+        send_ac_state();
+    }
+
+    current_state = idle_state;
 }
 
 void turbo_mode(void)
 {
-    // TODO
+    Serial.println("TURBO MODE");
+
+    g_ac_state.power = true;
+    g_ac_state.mode = 0;
+    g_ac_state.temperature = 18;
+    g_ac_state.fan = 3;
+
+    send_ac_state();
+
+    current_state = idle_state;
 }
 
 void eco_mode(void)
 {
-    // TODO
+    Serial.println("ECO MODE");
+
+    g_ac_state.power = true;
+    g_ac_state.mode = 0;
+    g_ac_state.temperature = 26;
+    g_ac_state.fan = 1;
+
+    send_ac_state();
+
+    current_state = idle_state;
 }
 
 void sleep_mode(void)
 {
-    // TODO
+    Serial.println("SLEEP MODE");
+
+    g_ac_state.power = true;
+    g_ac_state.temperature = 27;
+    g_ac_state.fan = 0;
+
+    send_ac_state();
+
+    current_state = idle_state;
 }
 #endif //AC_ECU
 #if LIGHTS_ECU
 void lights_on(void)
 {
-    // TODO
-}
+    Serial.println("LIGHTS ON");
 
+    digitalWrite(PIN_LIGHTS_RELAY, HIGH);
+
+    current_state = idle_state;
+}
 void lights_off(void)
 {
-    // TODO
+    Serial.println("LIGHTS OFF");
+
+    digitalWrite(PIN_LIGHTS_RELAY, LOW);
+
+    current_state = idle_state;
 }
 
 void set_brightness(void)
 {
-    // TODO
+    Serial.println("SET BRIGHTNESS");
+
+    if(g_cmd_len >= 2)
+    {
+        uint8_t brightness = g_cmd_data[1]; // 0-255
+
+        ledcWrite(0, brightness);
+    }
+
+    current_state = idle_state;
 }
 
 void set_lights_mode(void)
 {
-    // TODO
+    Serial.println("SET LIGHTS MODE");
+
+    if(g_cmd_len >= 2)
+    {
+        uint8_t mode = g_cmd_data[1];
+
+        switch(mode)
+        {
+            case 0: // normal
+                digitalWrite(PIN_LIGHTS_RELAY, HIGH);
+                ledcWrite(0, 255);
+                break;
+
+            case 1: // dim
+                digitalWrite(PIN_LIGHTS_RELAY, HIGH);
+                ledcWrite(0, 80);
+                break;
+
+            case 2: // off
+                digitalWrite(PIN_LIGHTS_RELAY, LOW);
+                ledcWrite(0, 0);
+                break;
+        }
+    }
+
+    current_state = idle_state;
 }
 #endif
 #if HEATING_ECU
 void heating_on(void)
 {
-    // TODO
+    Serial.println("HEATING ON");
+
+    digitalWrite(PIN_HEATER_RELAY, HIGH);
+
+    current_state = idle_state;
 }
 
 void heating_off(void)
 {
-    // TODO
+    Serial.println("HEATING OFF");
+
+    digitalWrite(PIN_HEATER_RELAY, LOW);
+
+    current_state = idle_state;
 }
 
 void set_heating_temp(void)
 {
-    // TODO
+    Serial.println("SET HEATING TEMP");
+
+    if(g_cmd_len >= 2)
+    {
+        uint8_t temp = g_cmd_data[1]; // e.g. 0–100%
+
+        ledcWrite(1, temp);
+    }
+
+    current_state = idle_state;
 }
 
 void set_heating_mode(void)
 {
-    // TODO
+    Serial.println("SET HEATING MODE");
+
+    if(g_cmd_len >= 2)
+    {
+        uint8_t mode = g_cmd_data[1];
+
+        switch(mode)
+        {
+            case 0: // off
+                digitalWrite(PIN_HEATER_RELAY, LOW);
+                break;
+
+            case 1: // low
+                digitalWrite(PIN_HEATER_RELAY, HIGH);
+                ledcWrite(1, 80);
+                break;
+
+            case 2: // high
+                digitalWrite(PIN_HEATER_RELAY, HIGH);
+                ledcWrite(1, 255);
+                break;
+        }
+    }
+
+    current_state = idle_state;
 }
 #endif
 #if DOOR_ECU
 void door_lock(void)
 {
-    // TODO
+    Serial.println("DOOR LOCK");
+
+    digitalWrite(PIN_DOOR_LOCK, HIGH);
+
+    current_state = idle_state;
 }
 
 void door_unlock(void)
 {
-  Serial.println("Close Door!");
-  uint8_t echo_data[2] = {0x02, 0x00};
-  Serial.println("Sending UDP packet to main SoC");
-  udp_tx(echo_data, sizeof(echo_data));
+    Serial.println("DOOR UNLOCK");
+
+    digitalWrite(PIN_DOOR_LOCK, LOW);
+
+    uint8_t msg[2] = {0x02, 0x00};
+    udp_tx(msg, sizeof(msg));
+
+    current_state = idle_state;
 }
 
 void ring_doorbell(void)
 {
-    // TODO
+    Serial.println("DOORBELL");
+
+    for(int i = 0; i < 3; i++)
+    {
+        digitalWrite(PIN_DOOR_BUZZER, HIGH);
+        delay(150);
+        digitalWrite(PIN_DOOR_BUZZER, LOW);
+        delay(150);
+    }
+
+    current_state = idle_state;
 }
 #endif //DOOR_ECU 
