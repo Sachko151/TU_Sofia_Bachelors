@@ -11,28 +11,82 @@
 /*================================================================
                         DEFINES
 =================================================================*/
-#define OTA_CHECK_URL "http://192.168.0.102:5000/ota"
-#define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
+
 #define MAIN_SOC_IP_3rd_OCTET 0
 #define MAIN_SOC_IP_4th_OCTET 107
 #define UDP_COM_PORT 151
-#define OTA_ENABLED 0u
+#define OTA_ENABLED 1u
+
+static uint8_t g_cmd_data[32];
+static uint8_t g_cmd_len;
 
 #if LIGHTS_ECU
-#define PIN_LIGHTS_RELAY      16
-#define PIN_LIGHTS_PWM        17
+  #define PIN_LIGHTS_RELAY      16
+  #define PIN_LIGHTS_PWM        17
+  #define OTA_CHECK_URL "http://192.168.0.102:5000/ota_lights_ecu"
+  #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
 #endif
 
 #if HEATING_ECU
-#define PIN_HEATER_RELAY      18
-#define PIN_HEATER_PWM        19
+  #define PIN_HEATER_RELAY      18
+  #define PIN_HEATER_PWM        19
+  #define OTA_CHECK_URL "http://192.168.0.102:5000/ota_heating_ecu"
+  #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
 #endif
 
 #if DOOR_ECU
-#define PIN_DOOR_LOCK         21
-#define PIN_DOOR_BUZZER       22
+  #define PIN_DOOR_LOCK         21
+  #define PIN_DOOR_BUZZER       22
+  #define OTA_CHECK_URL "http://192.168.0.102:5000/door_ecu"
+  #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
 #endif
 
+#ifdef AC_ECU
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+#include <ir_Mitsubishi.h>
+
+  #define IR_LED_PIN 4
+  #define OTA_CHECK_URL "http://192.168.0.102:5000/ota_ac_ecu"
+  #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
+
+IRMitsubishiAC ac(IR_LED_PIN);
+
+
+typedef struct
+{
+    bool power;
+    uint8_t temperature;
+    uint8_t fan;
+    uint8_t mode;
+    bool swing;
+} ac_state_t;
+
+ac_state_t g_ac_state =
+{
+    false,
+    24,
+    0,
+    4,
+    false
+};
+
+static void send_ac_state(void);
+void ac_on(void);
+void ac_off(void);
+void set_fan(void);
+void set_temp(void);
+void set_mode(void);
+void set_swing(void);
+void turbo_mode(void);
+void eco_mode(void);
+void sleep_mode(void);
+#endif //AC_ECU
+
+#ifndef OTA_CHECK_URL
+  #define OTA_CHECK_URL "http://192.168.0.102:5000/ota"
+  #define OTA_FW_LOCATION "http://192.168.0.102:5000/version"
+#endif
 
 typedef enum
 {
@@ -82,7 +136,7 @@ const char* ssid = "TP-Link-151";
 const char* password = "Sachko151!";
 // const char* ssid = "2__1__3";
 // const char* password = "Mehana213";
-String fw_ver = "1.0.1";
+String fw_ver = "1.0.1"; //Current version
 WiFiUDP udp;
 uint8_t current_state = idle_state;
 uint8_t current_exec_state = COUNT;
@@ -91,58 +145,14 @@ uint8_t heartbeat_counter = 0x0;
 
 typedef void (*command_func_t)(void);
 /* Function declarations */
-#ifdef AC_ECU
-#include <IRremoteESP8266.h>
-#include <IRsend.h>
-#include <ir_Mitsubishi.h>
 
-#define IR_LED_PIN 4
-
-IRMitsubishiAC ac(IR_LED_PIN);
-
-extern uint8_t g_cmd_data[32];
-extern uint8_t g_cmd_len;
-
-typedef struct
-{
-    bool power;
-    uint8_t temperature;
-    uint8_t fan;
-    uint8_t mode;
-    bool swing;
-} ac_state_t;
-
-ac_state_t g_ac_state =
-{
-    false,
-    24,
-    0,
-    4,
-    false
-};
-
-static void send_ac_state(void);
-void ac_on(void);
-void ac_off(void);
-void set_fan(void);
-void set_temp(void);
-void set_mode(void);
-void set_swing(void);
-void turbo_mode(void);
-void eco_mode(void);
-void sleep_mode(void);
-#endif //AC_ECU
 #if LIGHTS_ECU
-ledcSetup(0, 5000, 8); // channel 0, 5kHz, 8-bit
-ledcAttachPin(PIN_LIGHTS_PWM, 0);
 void lights_on(void);
 void lights_off(void);
 void set_brightness(void);
 void set_lights_mode(void);
 #endif //LIGHTS_ECU
 #if HEATING_ECU
-ledcSetup(1, 2000, 8);
-ledcAttachPin(PIN_HEATER_PWM, 1);
 void heating_on(void);
 void heating_off(void);
 void set_heating_temp(void);
@@ -222,6 +232,8 @@ void setup() {
     ac.begin();
   #endif //AC_ECU
   #if LIGHTS_ECU
+  ledcSetup(0, 5000, 8); // channel 0, 5kHz, 8-bit
+  ledcAttachPin(PIN_LIGHTS_PWM, 0);
 pinMode(PIN_LIGHTS_RELAY, OUTPUT);
 pinMode(PIN_LIGHTS_PWM, OUTPUT);
 digitalWrite(PIN_LIGHTS_RELAY, LOW);
@@ -229,6 +241,8 @@ digitalWrite(PIN_LIGHTS_PWM, LOW);
 #endif
 
 #if HEATING_ECU
+ledcSetup(1, 2000, 8);
+ledcAttachPin(PIN_HEATER_PWM, 1);
 pinMode(PIN_HEATER_RELAY, OUTPUT);
 pinMode(PIN_HEATER_PWM, OUTPUT);
 digitalWrite(PIN_HEATER_RELAY, LOW);
@@ -579,27 +593,27 @@ static void send_ac_state(void)
     }
 
     switch(g_ac_state.fan)
-    {
-        case 0:
-            ac.setFan(kMitsubishiAcFanAuto);
-            break;
+{
+    case 0:
+        ac.setFan(kMitsubishiAcFanAuto);
+        break;
 
-        case 1:
-            ac.setFan(kMitsubishiAcFanLow);
-            break;
+    case 1:
+        ac.setFan(kMitsubishiAcFanSilent);
+        break;
 
-        case 2:
-            ac.setFan(kMitsubishiAcFanMed);
-            break;
+    case 2:
+        ac.setFan(kMitsubishiAcVaneAuto);
+        break;
 
-        case 3:
-            ac.setFan(kMitsubishiAcFanHigh);
-            break;
+    case 3:
+        ac.setFan(kMitsubishiAcFanMax);
+        break;
 
-        default:
-            ac.setFan(kMitsubishiAcFanAuto);
-            break;
-    }
+    default:
+        ac.setFan(kMitsubishiAcFanAuto);
+        break;
+}
 
     if(g_ac_state.swing)
     {

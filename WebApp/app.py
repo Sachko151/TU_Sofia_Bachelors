@@ -360,7 +360,7 @@ def scan_action():
     return render_template("scan_action.html")
 
 #=================================================================#
-#                ESP FIRMWARE FOR OTA ROUTE                       #
+#                ESP FIRMWAREs FOR OTA ROUTE                       #
 #=================================================================#
 @app.route("/ota")
 def download_bin():
@@ -370,6 +370,40 @@ def download_bin():
         download_name="firmware.bin",  # filename user sees
         mimetype="application/octet-stream"
     )
+
+@app.route("/ota_ac_ecu")
+def download_bin_ac():
+    return send_file(
+        "ota_update/ac_ecu/firmware.bin",   # path to your .bin file
+        as_attachment=True,     # forces download
+        download_name="firmware.bin",  # filename user sees
+        mimetype="application/octet-stream"
+    )
+@app.route("/ota_door_ecu")
+def download_bin_door():
+    return send_file(
+        "ota_update/door_ecu/firmware.bin",   # path to your .bin file
+        as_attachment=True,     # forces download
+        download_name="firmware.bin",  # filename user sees
+        mimetype="application/octet-stream"
+    )
+@app.route("/ota_heating_ecu")
+def download_bin_heating():
+    return send_file(
+        "ota_update/heating_ecu/firmware.bin",   # path to your .bin file
+        as_attachment=True,     # forces download
+        download_name="firmware.bin",  # filename user sees
+        mimetype="application/octet-stream"
+    )
+@app.route("/ota_lights_ecu")
+def download_bin_lights():
+    return send_file(
+        "ota_update/lights_ecu/firmware.bin",   # path to your .bin file
+        as_attachment=True,     # forces download
+        download_name="firmware.bin",  # filename user sees
+        mimetype="application/octet-stream"
+    )
+
 
 #=================================================================#
 #            ESP FIRMWARE VERSION STRING FOR OTA ROUTE            #
